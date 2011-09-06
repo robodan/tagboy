@@ -28,27 +28,41 @@ def ReadMetadata(fname):
         metadata.read()
     except IOError:
         print "Error reading: %s" % fname
-        return None
+        metadata = None         # force object distruction
     return metadata
 
 def FlattenTags(metadata):
-    """Convert all tags to a dictionary with a uniform naming style."""
-    uni = {}
+    """Convert all tags to a dictionary with a uniform naming style.
+
+    We store both the fully qualified name and the short name.
+    For short names, XMP has precedence over IPTC over EXIF.
+    """
+    uni = dict()
+    # BUG? XMP has a copy of everything in EXIF
     for k in metadata.exif_keys:
+        kwords = k.split('.')
         try:
-            uni[k] = metadata[k].raw_value
+            v = metadata[k].raw_value
         except ex.ExifValueError:
             continue
+        uni[k] = v
+        uni[kwords[-1]] = v
     for k in metadata.iptc_keys:
+        kwords = k.split('.')
         try:
-            uni[k] = metadata[k].raw_value
+            v = metadata[k].raw_value
         except ex.IptcValueError:
             continue
+        uni[k] = v
+        uni[kwords[-1]] = v
     for k in metadata.xmp_keys:
+        kwords = k.split('.')
         try:
-            uni[k] = metadata[k].raw_value
+            v = metadata[k].raw_value
         except ex.XmpValueError:
             continue
+        uni[k] = v
+        uni[kwords[-1]] = v
     return uni
 
 def HandleArgs(args):
@@ -62,9 +76,21 @@ def HandleArgs(args):
 
 def PrintKeyValue(d):
     """Pretty print key-values."""
-    for (k,v) in d.iteritems():
-        print "%40s: %s" % (k, v)
+    for k in sorted(d.keys()):
+        print "%40s: %s" % (k, d[k])
 
+def EachFile(fn):
+    meta = ReadMetadata(fn)
+    if not meta:
+        return
+    unified = FlattenTags(meta)
+    print "========= %s =========" % (fn)
+    PrintKeyValue(unified)  # DEBUG
+    #print "Everything:", unified # DEBUG
+    #print "EXIF", meta.exif_keys # DEBUG
+    #print "IPTC", meta.iptc_keys # DEBUG
+    #print "XMP", meta.xmp_keys   # DEBUG
+    
 def main():
     (options, args) = HandleArgs(sys.argv[1:])
     print "tagboy begins:", options, args # DEBUG
@@ -73,15 +99,9 @@ def main():
     if options.verbose:
         print "Oops: verbose isn't... yet"
     for fn in args:
-        meta = ReadMetadata(fn)
-        if not meta:
-            continue
-        unified = FlattenTags(meta)
-        PrintKeyValue(unified)  # DEBUG
-        #print "Everything:", unified # DEBUG
-        #print "EXIF", meta.exif_keys # DEBUG
-        #print "IPTC", meta.iptc_keys # DEBUG
-        #print "XMP", meta.xmp_keys   # DEBUG
+        # TODO: if ends in / (or \\), do directory traverse
+        # TODO: check name against nameGlob, inameGlob, nameRegex
+        EachFile(fn)
 
 if __name__ == '__main__':
     main()
