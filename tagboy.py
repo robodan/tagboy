@@ -70,38 +70,37 @@ def HandleArgs(args):
     parser = optparse.OptionParser()
     parser.add_option("--name", help="Match files with this name (repeatable)",
                       action="append", dest="nameGlob", default=[])
+    parser.add_option("--ls", help="Show image info",
+                      action="store_true", dest="ls", default=False)
     parser.add_option("-v", "--verbose", help="Show more detail",
                       action="store_true", dest="verbose", default=False)
     return parser.parse_args(args)
 
-def PrintKeyValue(d):
+def PrintKeyValue(d, verbose):
     """Pretty print key-values."""
     for k in sorted(d.keys()):
+        if not verbose and k.find('.') >= 0:
+            continue            # skip the dotted names
         print "%40s: %s" % (k, d[k])
 
-def EachFile(fn):
+def EachFile(fn, options):
     meta = ReadMetadata(fn)
     if not meta:
         return
     unified = FlattenTags(meta)
-    print "========= %s =========" % (fn)
-    PrintKeyValue(unified)  # DEBUG
-    #print "Everything:", unified # DEBUG
-    #print "EXIF", meta.exif_keys # DEBUG
-    #print "IPTC", meta.iptc_keys # DEBUG
-    #print "XMP", meta.xmp_keys   # DEBUG
+    if options.ls:
+        print "========= %s =========" % (fn)
+        PrintKeyValue(unified, options.verbose)  # DEBUG
     
 def main():
     (options, args) = HandleArgs(sys.argv[1:])
     print "tagboy begins:", options, args # DEBUG
     if options.nameGlob:
         print "Oops:  --name isn't supported yet"
-    if options.verbose:
-        print "Oops: verbose isn't... yet"
     for fn in args:
         # TODO: if ends in / (or \\), do directory traverse
         # TODO: check name against nameGlob, inameGlob, nameRegex
-        EachFile(fn)
+        EachFile(fn, options)
 
 if __name__ == '__main__':
     main()
