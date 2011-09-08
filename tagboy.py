@@ -16,13 +16,14 @@ Usage:
   tagboy --match '*.location=Phoenix' --print
 """
 
+import fnmatch
+# hmm? use backported argparse: http://code.google.com/p/argparse/
+import optparse                 # because argparse requires python >= 2.7
 import os
 import pyexiv2 as ex
 import string
 import sys
 
-# hmm? use backported argparse: http://code.google.com/p/argparse/
-import optparse                 # because argparse requires python >= 2.7
 
 class TagBoy(object):
     FILENAME = '_filename_'
@@ -75,14 +76,26 @@ class TagBoy(object):
     def HandleArgs(self, args):
         """Setup argument parsing and return parsed arguments."""
         parser = optparse.OptionParser()
-        parser.add_option("--name", help="Match files with this name (repeatable)",
-                          action="append", dest="nameGlobs", default=[])
-        parser.add_option("--echo", help="Echo argument with $vars (repeatable)",
-                          action="append", dest="echoStrings", default=[])
-        parser.add_option("--ls", help="Show image info (more with -v)",
-                          action="store_true", dest="ls", default=False)
-        parser.add_option("-v", "--verbose", help="Show more detail",
-                          action="store_true", dest="verbose", default=False)
+        parser.add_option(
+            "--iname",
+            help="Match files (supports ?*[]) with this case insensitive name (repeatable)",
+            action="append", dest="inameGlobs", default=[])
+        parser.add_option(
+            "--name",
+            help="Match files (supports ?*[]) with this name (repeatable)",
+            action="append", dest="nameGlobs", default=[])
+        parser.add_option(
+            "--echo",
+            help="Echo argument with $vars (repeatable)",
+            action="append", dest="echoStrings", default=[])
+        parser.add_option(
+            "--ls",
+            help="Show image info (more with -v)",
+            action="store_true", dest="ls", default=False)
+        parser.add_option(
+            "-v",
+            "--verbose", help="Show more detail",
+            action="store_true", dest="verbose", default=False)
         (self.options, pos_args) = parser.parse_args(args)
         return pos_args
 
@@ -93,6 +106,19 @@ class TagBoy(object):
                 continue            # skip the dotted names
             print "%40s: %s" % (k, d[k])
 
+
+    def CheckFilenameMatch(self, path):
+        """Check if path matches a command line match expression."""
+        if not self.options.nameGlobs:
+            return True         # Nothing means match all
+        fname = os.path.basename(fn)
+        for chk in self.options.inameGlobs: # First try case insensitive
+            if fnmatch.fnmatch(fname, chk):
+                return True
+        for chk in self.options.nameGlobs:
+            if fnmatch.fnmatchcase(fname, chk):
+                return True
+        return False
 
     def EachFile(self, fn):
         meta = self.ReadMetadata(fn)
@@ -118,9 +144,14 @@ def main():
         return
     print "tagboy begins:", args # DEBUG
     for fn in args:
-        # TODO: if ends in / (or \\), do directory traverse
-        # TODO: check name against nameGlob, inameGlob, nameRegex
-        tb.EachFile(fn)
+        if os.path.isdir(fn):
+            print "TBD: handle directory walks"
+        elif os.path.isfile(fn):
+            if not tb.CheckFilenameMatch(fn):
+                continue
+            tb.EachFile(fn)
+        else:
+            print "Can't find a file/directory named: %s" % (fn)
 
 if __name__ == '__main__':
     main()
