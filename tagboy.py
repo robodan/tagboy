@@ -12,9 +12,16 @@
 
 """As cowboys wrangle cows, tagboy wrangles EXIF/IPTC/XMP tags in images.
 
+This has similar concepts and arguments to find(1), but acts on tags.
+We use new style argument names (double dash before multi-character
+arguments), and many arguments can be repeated.  Unlike find(1),
+argument order doesn't matter.
+
 Usage:
-  tagboy --iname 'D*.jpg' --ls .
+  tagboy ./ --iname '*.jpg' --ls
+  note: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
+_VERSION='0.1'
 
 import fnmatch
 # hmm? use backported argparse: http://code.google.com/p/argparse/
@@ -97,6 +104,11 @@ class TagBoy(object):
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
         (self.options, pos_args) = parser.parse_args(args)
+
+        self.echoTemplates = list() # convert echo list into templates
+        for ss in self.options.echoStrings:
+            # TODO: subclass Template to allow . in variable pattern
+            self.echoTemplates.append(string.Template(ss))
         return pos_args
 
     def PrintKeyValue(self, d):
@@ -130,10 +142,8 @@ class TagBoy(object):
         if self.options.ls:
             print "========= %s =========" % (fn)
             self.PrintKeyValue(unified)
-        for ss in self.options.echoStrings:
-            # TODO: don't compile each time
-            # TODO: subclass Template to all . in variable pattern
-            out = string.Template(ss).safe_substitute(unified)
+        for et in self.echoTemplates:
+            out = et.safe_substitute(unified)
             print out
     
 def main():
@@ -142,12 +152,11 @@ def main():
     if not args:
         print "No arguments.  Nothing to do."
         return
-    print "tagboy begins:", args # DEBUG
     for parg in args:
         if os.path.isdir(parg):
-            # TODO 2.6+ supports following links with followlinks=True
+            # TODO Python 2.6+ supports following links with followlinks=True
             for root, dirs, files in os.walk(parg):
-                print "DEBUG: walk", root, dirs, files
+                #print "DEBUG: walk", root, dirs, files
                 for d in dirs:
                     if d.startswith('.'): # ignore hidden directories
                         dirs.remove(d)
