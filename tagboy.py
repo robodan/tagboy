@@ -19,9 +19,17 @@ argument order doesn't matter.
 
 Usage:
   tagboy ./ --iname '*.jpg' --ls
+  tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
   note: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
 _VERSION='0.1'
+
+#TODO: Field comparisons
+#TODO: Field assignments
+#TODO: Write/read a sqlite3? database with ???
+#TODO: Handle multi-valued fields more nicely
+#TODO:
+
 
 import fnmatch
 # hmm? use backported argparse: http://code.google.com/p/argparse/
@@ -31,6 +39,10 @@ import pyexiv2 as ex
 import string
 import sys
 
+class TagTemplate(string.Template):
+    """Sub-class string.Template to allow . in variable names."""
+    idpattern = r'[_a-z][\._a-z0-9]*'
+    
 
 class TagBoy(object):
     FILENAME = '_filename_'
@@ -107,8 +119,7 @@ class TagBoy(object):
 
         self.echoTemplates = list() # convert echo list into templates
         for ss in self.options.echoStrings:
-            # TODO: subclass Template to allow . in variable pattern
-            self.echoTemplates.append(string.Template(ss))
+            self.echoTemplates.append(TagTemplate(ss))
         return pos_args
 
     def PrintKeyValue(self, d):
