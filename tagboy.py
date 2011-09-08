@@ -13,8 +13,8 @@
 """As cowboys wrangle cows, tagboy wrangles EXIF/IPTC/XMP tags in images.
 
 Usage:
-  tagboy --match '*.location=Phoenix' --print
-"""
+  tagboy --iname 'D*.jpg' --ls .
+"""                             # NOTE: this is also the usage string in help
 
 import fnmatch
 # hmm? use backported argparse: http://code.google.com/p/argparse/
@@ -75,7 +75,7 @@ class TagBoy(object):
 
     def HandleArgs(self, args):
         """Setup argument parsing and return parsed arguments."""
-        parser = optparse.OptionParser()
+        parser = optparse.OptionParser(usage=__doc__)
         parser.add_option(
             "--iname",
             help="Match files (supports ?*[]) with this case insensitive name (repeatable)",
@@ -107,17 +107,17 @@ class TagBoy(object):
             print "%40s: %s" % (k, d[k])
 
 
-    def CheckFilenameMatch(self, path):
+    def CheckMatch(self, fname):
         """Check if path matches a command line match expression."""
-        if not self.options.nameGlobs:
+        if not self.options.nameGlobs and not self.options.inameGlobs:
             return True         # Nothing means match all
-        fname = os.path.basename(fn)
         for chk in self.options.inameGlobs: # First try case insensitive
             if fnmatch.fnmatch(fname, chk):
                 return True
         for chk in self.options.nameGlobs:
             if fnmatch.fnmatchcase(fname, chk):
                 return True
+        # TODO: path match
         return False
 
     def EachFile(self, fn):
@@ -143,13 +143,20 @@ def main():
         print "No arguments.  Nothing to do."
         return
     print "tagboy begins:", args # DEBUG
-    for fn in args:
-        if os.path.isdir(fn):
-            print "TBD: handle directory walks"
-        elif os.path.isfile(fn):
-            if not tb.CheckFilenameMatch(fn):
-                continue
-            tb.EachFile(fn)
+    for parg in args:
+        if os.path.isdir(parg):
+            # TODO 2.6+ supports following links with followlinks=True
+            for root, dirs, files in os.walk(parg):
+                print "DEBUG: walk", root, dirs, files
+                for d in dirs:
+                    if d.startswith('.'): # ignore hidden directories
+                        dirs.remove(d)
+                for fn in files:
+                    if not tb.CheckMatch(fn):
+                        continue
+                    tb.EachFile(os.path.join(root, fn))
+        elif os.path.isfile(parg):
+            tb.EachFile(parg)
         else:
             print "Can't find a file/directory named: %s" % (fn)
 
