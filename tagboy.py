@@ -22,12 +22,13 @@ Usage:
   tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
   note: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
-_VERSION='0.1'
+_VERSION='0.2'
 
 #TODO: Field comparisons
 #TODO: Field assignments
 #TODO: Write/read a sqlite3? database with ???
 #TODO: Handle multi-valued fields more nicely
+#TODO: Logging/verbose handling
 #TODO:
 
 
@@ -45,8 +46,19 @@ class TagTemplate(string.Template):
     
 
 class TagBoy(object):
-    FILENAME = '_filename_'
-    FILEPATH = '_filepath_'
+    """Class that implements tag mapulation."""
+    # string constants defining the names of fields/variables
+    FILENAME  = '_filename_'
+    FILEPATH  = '_filepath_'
+    FILECOUNT = '_filecount_'
+    VERSION   = '_version_'
+
+    def __init__(self):
+        self.file_count = 0       # number of files encountered
+        self.global_vars = dict() # 'global' state passed to eval()
+        self.eval_code = None     # compiled code for each file
+        self.echoTemplates = list() # list of echo statements
+        self.global_vars[self.VERSION] = _VERSION
 
     def ReadMetadata(self, fname):
         """Read file metadata and return."""
@@ -112,14 +124,23 @@ class TagBoy(object):
             help="Show image info (more with -v)",
             action="store_true", dest="ls", default=False)
         parser.add_option(
+            "--begin",
+            help="Statement(s) to eval before first file",
+            action="store", dest="do_begin", default=None)
+        parser.add_option(
+            "--eval",
+            help="Statement(s) to eval for each file",
+            action="store", dest="do_eval", default=None)
+        parser.add_option(
+            "--end",
+            help="Statement(s) to eval after last file",
+            action="store", dest="do_end", default=None)
+        parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
         (self.options, pos_args) = parser.parse_args(args)
 
-        self.echoTemplates = list() # convert echo list into templates
-        for ss in self.options.echoStrings:
-            self.echoTemplates.append(TagTemplate(ss))
         return pos_args
 
     def PrintKeyValue(self, d):
@@ -143,20 +164,73 @@ class TagBoy(object):
         # TODO: path match
         return False
 
+    def Compile(self, statements):
+        """Our compile with error handling."""
+        try:
+            code = compile(statements, '<string>', 'exec')
+            return code
+            c = compile(code, self.global_vars, local_vars)
+        except Exception as inst:
+            print "Compile failed <%s>: %s" % (inst, self.options.do_eval)
+            return None
+
+    def Eval(self, code, local_vars):
+        """Our eval with error handling."""
+        # TODO: verify security of all this
+        try:
+            eval(code, self.global_vars, local_vars)
+        except Exception as inst:
+            print "Eval failed <%s>: %s" % (inst, self.options.do_eval)
+
+    def DoStart(self):
+        """Do setup for first file."""
+        for ss in self.options.echoStrings: # convert echo list into templates
+            self.echoTemplates.append(TagTemplate(ss))
+        if self.options.do_begin:
+            self.global_vars[self.FILECOUNT] = self.file_count
+            code = self.Compile(self.options.do_begin)
+            self.Eval(code, {})
+        if self.options.do_eval:
+            self.eval_code = self.Compile(self.options.do_eval)
+
     def EachFile(self, fn):
         meta = self.ReadMetadata(fn)
         if not meta:
             return
+        if self.file_count == 0:
+            self.DoStart()
+        self.file_count += 1
         unified = self.FlattenTags(meta)
         unified[self.FILEPATH] = fn
         unified[self.FILENAME] = os.path.basename(fn)
         if self.options.ls:
             print "========= %s =========" % (fn)
             self.PrintKeyValue(unified)
+        if self.options.do_eval:
+            local_vars = dict()
+            for k, v in unified.iteritems(): # clone tags as variables
+                local_vars[k] = v
+            self.global_vars[self.FILECOUNT] = self.file_count
+            self.Eval(self.eval_code, local_vars)
+            for k, v in unified.iteritems(): # look for changes
+                if local_vars[k] != v:
+                    print "Oh look, %s changed: %s -> %s (no writes, yet)" % (
+                        k, v, local_vars[k]) # DEBUG/verbose
+                    # TODO: write changes out
+                    pass
         for et in self.echoTemplates:
             out = et.safe_substitute(unified)
             print out
-    
+
+    def DoEnd(self):
+        """Do setup after last file."""
+        if self.file_count == 0:
+            return
+        if self.options.do_begin:
+            self.global_vars[self.FILECOUNT] = self.file_count
+            code = self.Compile(self.options.do_end)
+            self.Eval(code, {})
+        
 def main():
     tb = TagBoy()
     args = tb.HandleArgs(sys.argv[1:])
@@ -179,6 +253,7 @@ def main():
             tb.EachFile(parg)
         else:
             print "Can't find a file/directory named: %s" % (fn)
+    tb.DoEnd()
 
 if __name__ == '__main__':
     main()
