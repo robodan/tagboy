@@ -29,6 +29,7 @@ _VERSION='0.2'
 #TODO: Write/read a sqlite3? database with ???
 #TODO: Handle multi-valued fields more nicely
 #TODO: Logging/verbose handling
+#TODO: Thumbnail extraction
 #TODO:
 
 
@@ -166,6 +167,7 @@ class TagBoy(object):
 
     def Compile(self, statements):
         """Our compile with error handling."""
+        # TODO: make private
         try:
             code = compile(statements, '<string>', 'exec')
             return code
@@ -176,6 +178,7 @@ class TagBoy(object):
 
     def Eval(self, code, local_vars):
         """Our eval with error handling."""
+        # TODO: make private
         # TODO: verify security of all this
         try:
             eval(code, self.global_vars, local_vars)
