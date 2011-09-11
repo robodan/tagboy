@@ -5,12 +5,15 @@ Dan Christian
 Notes:
 
 --echo can't do anything that --eval can't do, but it's easier to
-understand (and safer).
+understand (and safer).  
+
+Our special variables start with _ in --echo and --ls, but not in
+begin/eval/end.  This is to distinguish them from tags.
 
 --begin/eval/end execute python code in a restricted environment.
 This still may not be secure.  It requires users to understand python
 for advanced functionality. Making these arguments repeatable may be
-useful for command line organization.  Files to execute might also be
+useful for command line organization.  Files to execute would also be
 helpful (and allow syntax aware editing).
 
 Tags have types.  pyexiv2 is good a maintaining type (although we
@@ -19,7 +22,7 @@ for that type.  Multi-value tags, rational numbers, dates, and curves
 may require special handling.
 
 Figuring out how to select images based on tags is still TBD.  One
-possibility:  have an --eval set _skip_=True if it should skip that
+possibility:  have an --eval set skip=1 if it should skip that
 file.
 
 The test data is much larger than it needs to be.  Our priority is
@@ -28,10 +31,10 @@ tags, thumbnails, and (lastly) the image.
 
 Examples:
 ./tagboy.py /a/dac/Pictures/HTC_Evo/IMAG016*.jpg --iname '*.jpg' \
-  --eval '_skip= 0 if ("GPSTag" in _tags) else 1' --ls
+  --eval 'skip= 0 if tags.has_key("GPSTag") else 1' --ls
 
 ./tagboy.py ./ --iname '*.jpg' \
-  --begin 'print "hello world %s" %_version' \
-  --end 'print "did %d" % (_filecount)' \
-  --eval 'print "each %s: %s" % (_filename, _filepath)'  \
+  --begin 'print "hello world %s" %version' \
+  --end 'print "did %d" % (filecount)' \
+  --eval 'print "each %s: %s" % (filename, filepath)'  \
   --echo '$_filename: ${Keywords}'

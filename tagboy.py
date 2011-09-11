@@ -51,12 +51,12 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    VERSION   = '_version'     # version of tagboy
-    FILECOUNT = '_filecount'   # current count of files read
-    FILENAME  = '_filename'    # file base name
-    FILEPATH  = '_filepath'    # full path
-    SKIP      = '_skip'        # set this to end processing of this file
-    TAGS      = '_tags'        # list of all tags
+    VERSION   = 'version'     # version of tagboy
+    FILECOUNT = 'filecount'   # current count of files read
+    FILENAME  = 'filename'    # file base name
+    FILEPATH  = 'filepath'    # full path
+    SKIP      = 'skip'        # set this to end processing of this file
+    TAGS      = 'tags'        # dictionary of all tags
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -210,25 +210,22 @@ class TagBoy(object):
             self.DoStart()
         self.file_count += 1
         unified = self.FlattenTags(meta)
-        unified[self.TAGS] = unified.keys()
-        unified[self.FILEPATH] = fn
-        unified[self.FILENAME] = os.path.basename(fn)
+
         skip = False
         if self.options.do_eval:
-            local_vars = dict()
+            local_tags = dict()
             for k, v in unified.iteritems(): # clone tags as variables
-                local_vars[k] = v
+                local_tags[k] = v
             self.global_vars[self.FILECOUNT] = self.file_count
+            local_vars = dict()
+            local_vars[self.TAGS] = local_tags
+            local_vars[self.FILEPATH] = fn
+            local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.SKIP] = 0
             self.Eval(self.eval_code, local_vars)
-            for k, v in local_vars.iteritems(): # look for changes
-                if k[0] == '_': # is an internal variable
-                    if k == self.SKIP and not not v:
-                        print "Skipping %s" % fn # DEBUG/verbose
-                        skip = True
-                    continue
-                if len(k) <= 1: # there are no single letter tags
-                    continue
+            if local_vars[self.SKIP]:
+                return
+            for k, v in local_tags.iteritems(): # look for changes
                 if not unified.has_key(k):
                     print "New tag '%s' is ignored" # DEBUG/verbose
                     continue
@@ -237,8 +234,8 @@ class TagBoy(object):
                         k, unified[k], v) # DEBUG/verbose
                     # TODO: write changes to meta
                     pass
-        if skip:
-            return
+        unified['_'+self.FILEPATH] = fn
+        unified['_'+self.FILENAME] = os.path.basename(fn)
         if self.options.ls:
             print "========= %s =========" % (fn)
             self.PrintKeyValue(unified)
