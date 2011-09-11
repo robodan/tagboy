@@ -22,7 +22,9 @@ Usage:
   tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
   note: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
-_VERSION='0.2'
+
+# This line must also be valid borne shell for Makefile extraction
+VERSION='0.2'
 
 #TODO: Field comparisons
 #TODO: Field assignments
@@ -59,7 +61,7 @@ class TagBoy(object):
         self.global_vars = dict() # 'global' state passed to eval()
         self.eval_code = None     # compiled code for each file
         self.echoTemplates = list() # list of echo statements
-        self.global_vars[self.VERSION] = _VERSION
+        self.global_vars[self.VERSION] = VERSION
 
     def ReadMetadata(self, fname):
         """Read file metadata and return."""
