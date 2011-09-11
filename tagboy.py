@@ -51,11 +51,12 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    FILENAME  = '_filename_'
-    FILEPATH  = '_filepath_'
-    FILECOUNT = '_filecount_'
-    VERSION   = '_version_'
-    SKIP      = '_skip_'
+    VERSION   = '_version'     # version of tagboy
+    FILECOUNT = '_filecount'   # current count of files read
+    FILENAME  = '_filename'    # file base name
+    FILEPATH  = '_filepath'    # full path
+    SKIP      = '_skip'        # set this to end processing of this file
+    TAGS      = '_tags'        # list of all tags
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -150,6 +151,8 @@ class TagBoy(object):
     def PrintKeyValue(self, d):
         """Pretty print key-values."""
         for k in sorted(d.keys()):
+            if not self.options.verbose and k[0] == '_': # internal variable
+                continue
             if not self.options.verbose and k.find('.') >= 0:
                 continue            # skip the dotted names
             print "%40s: %s" % (k, d[k])
@@ -207,6 +210,7 @@ class TagBoy(object):
             self.DoStart()
         self.file_count += 1
         unified = self.FlattenTags(meta)
+        unified[self.TAGS] = unified.keys()
         unified[self.FILEPATH] = fn
         unified[self.FILENAME] = os.path.basename(fn)
         skip = False
