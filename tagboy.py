@@ -129,6 +129,10 @@ class TagBoy(object):
             help="Show image info (more with -v)",
             action="store_true", dest="ls", default=False)
         parser.add_option(
+            "--print",
+            help="Print the name of the file",
+            action="store_true", dest="printpath", default=False)
+        parser.add_option(
             "--begin",
             help="Statement(s) to eval before first file",
             action="store", dest="do_begin", default=None)
@@ -145,7 +149,9 @@ class TagBoy(object):
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
         (self.options, pos_args) = parser.parse_args(args)
-
+        self.inameGlobs = list()
+        for chk in self.options.inameGlobs: # make case insensitive
+            self.inameGlobs.append(chk.lower())
         return pos_args
 
     def PrintKeyValue(self, d):
@@ -162,10 +168,11 @@ class TagBoy(object):
         """Check if path matches a command line match expression."""
         if not self.options.nameGlobs and not self.options.inameGlobs:
             return True         # Nothing means match all
-        for chk in self.options.inameGlobs: # First try case insensitive
-            if fnmatch.fnmatch(fname, chk):
+        # BUG: fnmatch is only case insensitive if the filesystem is
+        for chk in self.inameGlobs: # First try case insensitive
+            if fnmatch.fnmatchcase(fname.lower(), chk):
                 return True
-        for chk in self.options.nameGlobs:
+        for chk in self.options.nameGlobs: # always case sensitive
             if fnmatch.fnmatchcase(fname, chk):
                 return True
         # TODO: path match
@@ -236,6 +243,8 @@ class TagBoy(object):
                     pass
         unified['_'+self.FILEPATH] = fn
         unified['_'+self.FILENAME] = os.path.basename(fn)
+        if self.options.printpath:
+            print fn
         if self.options.ls:
             print "========= %s =========" % (fn)
             self.PrintKeyValue(unified)
@@ -247,7 +256,7 @@ class TagBoy(object):
         """Do setup after last file."""
         if self.file_count == 0:
             return
-        if self.options.do_begin:
+        if self.options.do_end:
             self.global_vars[self.FILECOUNT] = self.file_count
             code = self.Compile(self.options.do_end)
             self.Eval(code, {})
@@ -258,22 +267,25 @@ def main():
     if not args:
         print "No arguments.  Nothing to do."
         return
-    for parg in args:
-        if os.path.isdir(parg):
-            # TODO Python 2.6+ supports following links with followlinks=True
-            for root, dirs, files in os.walk(parg):
-                #print "DEBUG: walk", root, dirs, files
-                for d in dirs:
-                    if d.startswith('.'): # ignore hidden directories
-                        dirs.remove(d)
-                for fn in files:
-                    if not tb.CheckMatch(fn):
-                        continue
-                    tb.EachFile(os.path.join(root, fn))
-        elif os.path.isfile(parg):
-            tb.EachFile(parg)
-        else:
-            print "Can't find a file/directory named: %s" % (fn)
+    try:
+        for parg in args:
+            if os.path.isdir(parg):
+                # TODO Python 2.6+ supports followlinks=True
+                for root, dirs, files in os.walk(parg):
+                    #print "DEBUG: walk", root, dirs, files
+                    for d in dirs:
+                        if d.startswith('.'): # ignore hidden directories
+                            dirs.remove(d)
+                    for fn in files:
+                        if not tb.CheckMatch(fn):
+                            continue
+                        tb.EachFile(os.path.join(root, fn))
+            elif os.path.isfile(parg):
+                tb.EachFile(parg)
+            else:
+                print "Can't find a file/directory named: %s" % (fn)
+    except (KeyboardInterrupt, SystemExit):
+        pass
     tb.DoEnd()
 
 if __name__ == '__main__':

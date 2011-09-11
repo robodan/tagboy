@@ -30,7 +30,7 @@ thumbnails, and (lastly) the image.
 
 
 Examples:
-./tagboy.py /a/dac/Pictures/HTC_Evo/IMAG016*.jpg --iname '*.jpg' \
+./tagboy.py ./ --iname '*.jpg' \
   --eval 'skip= 0 if tags.has_key("GPSTag") else 1' --ls
 
 ./tagboy.py ./ --iname '*.jpg' \
