@@ -3,4 +3,5 @@ TARDIR = ~/dload
 
 tar:
 	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \
-	(cd ..; tar czf $(TARDIR)/$(NAME)-$$VERSION.tgz $(NAME)/*.{py,txt} $(NAME)/Makefile $(NAME)/tests)
+	(cd ..; tar czf $(TARDIR)/$(NAME)-$$VERSION.tgz --exclude-backups \
+	$(NAME)/*.{py,txt} $(NAME)/Makefile $(NAME)/tests)

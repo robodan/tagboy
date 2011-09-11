@@ -55,6 +55,7 @@ class TagBoy(object):
     FILEPATH  = '_filepath_'
     FILECOUNT = '_filecount_'
     VERSION   = '_version_'
+    SKIP      = '_skip_'
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -208,21 +209,35 @@ class TagBoy(object):
         unified = self.FlattenTags(meta)
         unified[self.FILEPATH] = fn
         unified[self.FILENAME] = os.path.basename(fn)
-        if self.options.ls:
-            print "========= %s =========" % (fn)
-            self.PrintKeyValue(unified)
+        skip = False
         if self.options.do_eval:
             local_vars = dict()
             for k, v in unified.iteritems(): # clone tags as variables
                 local_vars[k] = v
             self.global_vars[self.FILECOUNT] = self.file_count
+            local_vars[self.SKIP] = 0
             self.Eval(self.eval_code, local_vars)
-            for k, v in unified.iteritems(): # look for changes
-                if local_vars[k] != v:
+            for k, v in local_vars.iteritems(): # look for changes
+                if k[0] == '_': # is an internal variable
+                    if k == self.SKIP and not not v:
+                        print "Skipping %s" % fn # DEBUG/verbose
+                        skip = True
+                    continue
+                if len(k) <= 1: # there are no single letter tags
+                    continue
+                if not unified.has_key(k):
+                    print "New tag '%s' is ignored" # DEBUG/verbose
+                    continue
+                if unified[k] != v:
                     print "Oh look, %s changed: %s -> %s (no writes, yet)" % (
-                        k, v, local_vars[k]) # DEBUG/verbose
-                    # TODO: write changes out
+                        k, unified[k], v) # DEBUG/verbose
+                    # TODO: write changes to meta
                     pass
+        if skip:
+            return
+        if self.options.ls:
+            print "========= %s =========" % (fn)
+            self.PrintKeyValue(unified)
         for et in self.echoTemplates:
             out = et.safe_substitute(unified)
             print out
