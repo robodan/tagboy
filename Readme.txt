@@ -22,4 +22,16 @@ Figuring out how to select images based on tags is still TBD.  One
 possibility:  have an --eval set _skip_=True if it should skip that
 file.
 
+The test data is much larger than it needs to be.  Our priority is
+tags, thumbnails, and (lastly) the image.
 
+
+Examples:
+./tagboy.py /a/dac/Pictures/HTC_Evo/IMAG016*.jpg --iname '*.jpg' \
+  --eval '_skip= 0 if ("GPSTag" in _tags) else 1' --ls
+
+./tagboy.py ./ --iname '*.jpg' \
+  --begin 'print "hello world %s" %_version' \
+  --end 'print "did %d" % (_filecount)' \
+  --eval 'print "each %s: %s" % (_filename, _filepath)'  \
+  --echo '$_filename: ${Keywords}'
