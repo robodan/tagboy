@@ -25,8 +25,8 @@ Figuring out how to select images based on tags is still TBD.  One
 possibility:  have an --eval set skip=1 if it should skip that
 file.
 
-The test data is much larger than it needs to be.  Our priority is
-tags, thumbnails, and (lastly) the image.
+The test data is severely trimmed for size.  Our priority is tags,
+thumbnails, and (lastly) the image.
 
 
 Examples:
