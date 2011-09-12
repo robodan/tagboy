@@ -26,7 +26,6 @@ Usage:
 # This line must also be valid borne shell for Makefile extraction
 VERSION='0.3'
 
-#TODO: 'Grep' for strings in a tag glob
 #TODO: Some way to generate a symlink dir from matches (--exec?)
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -34,6 +33,8 @@ VERSION='0.3'
 #TODO: Handle multi-valued fields more nicely
 #TODO: Logging/verbose handling
 #TODO: Thumbnail extraction
+#TODO: Read/write image comments (separate from EXIF comments)
+#TODO: Whitelist of interesting tags (others ignored)
 #TODO:
 
 
@@ -42,6 +43,7 @@ import fnmatch
 import optparse                 # because argparse requires python >= 2.7
 import os
 import pyexiv2 as ex
+import re
 import string
 import sys
 
@@ -63,9 +65,83 @@ class TagBoy(object):
     def __init__(self):
         self.file_count = 0       # number of files encountered
         self.global_vars = dict() # 'global' state passed to eval()
+        self.global_vars[self.VERSION] = VERSION
         self.eval_code = None     # compiled code for each file
         self.echoTemplates = list() # list of echo statements
-        self.global_vars[self.VERSION] = VERSION
+        self.inameGlobs = None  # list of case converted name globs
+        self.greps = None       # list of (RE, glob)
+
+    def HandleArgs(self, args):
+        """Setup argument parsing and return parsed arguments."""
+        parser = optparse.OptionParser(usage=__doc__)
+        parser.add_option(
+            "--iname",
+            help="Match files (supports ?*[]) with this case insensitive name (repeatable)",
+            action="append", dest="inameGlobs", default=[])
+        parser.add_option(
+            "--name",
+            help="Match files (supports ?*[]) with this name (repeatable)",
+            action="append", dest="nameGlobs", default=[])
+        parser.add_option(
+            "--echo",
+            help="Echo argument with $vars (repeatable)",
+            action="append", dest="echoStrings", default=[])
+        parser.add_option(
+            "--ls",
+            help="Show image info (more with -v)",
+            action="store_true", dest="ls", default=False)
+        parser.add_option(
+            "--print",
+            help="Print the name of the file",
+            action="store_true", dest="printpath", default=False)
+        parser.add_option(
+            "--grep",
+            help="'grep' for PATTERN in TAG_GLOB",
+            nargs = 2,
+            action="append", dest="grep", default=[])
+        parser.add_option(
+            "-i",
+            "--ignore-case", help="grep pattern should be case insensitive",
+            action="store_true", dest="igrep", default=False)
+        parser.add_option(
+            "--begin",
+            help="Statement(s) to eval before first file",
+            dest="do_begin", default=None)
+        parser.add_option(
+            "--eval",
+            help="Statement(s) to eval for each file",
+            dest="do_eval", default=None)
+        parser.add_option(
+            "--end",
+            help="Statement(s) to eval after last file",
+            dest="do_end", default=None)
+        parser.add_option(
+            "-v",
+            "--verbose", help="Show more detail",
+            action="store_true", dest="verbose", default=False)
+        (self.options, pos_args) = parser.parse_args(args)
+
+        # process arguments
+        self.inameGlobs = list()
+        for chk in self.options.inameGlobs: # make case insensitive
+            self.inameGlobs.append(chk.lower())
+
+        self.greps = list()
+        compile_flags = re.IGNORECASE if self.options.igrep else 0
+        for pat, targ in self.options.grep:
+            self.greps.append((re.compile(pat, compile_flags), targ))
+
+        return pos_args
+
+    def Error(self, msg):
+        """Output an error message."""
+        print >> sys.stderr, msg
+
+    def Verbose(self, msg):
+        """Output a message if verbose is set."""
+        if not self.options.verbose:
+            return
+        print >> sys.stderr, msg
 
     def ReadMetadata(self, fname):
         """Read file metadata and return."""
@@ -112,61 +188,6 @@ class TagBoy(object):
             uni[kwords[-1]] = v
         return uni
 
-    def HandleArgs(self, args):
-        """Setup argument parsing and return parsed arguments."""
-        parser = optparse.OptionParser(usage=__doc__)
-        parser.add_option(
-            "--iname",
-            help="Match files (supports ?*[]) with this case insensitive name (repeatable)",
-            action="append", dest="inameGlobs", default=[])
-        parser.add_option(
-            "--name",
-            help="Match files (supports ?*[]) with this name (repeatable)",
-            action="append", dest="nameGlobs", default=[])
-        parser.add_option(
-            "--echo",
-            help="Echo argument with $vars (repeatable)",
-            action="append", dest="echoStrings", default=[])
-        parser.add_option(
-            "--ls",
-            help="Show image info (more with -v)",
-            action="store_true", dest="ls", default=False)
-        parser.add_option(
-            "--print",
-            help="Print the name of the file",
-            action="store_true", dest="printpath", default=False)
-        parser.add_option(
-            "--begin",
-            help="Statement(s) to eval before first file",
-            action="store", dest="do_begin", default=None)
-        parser.add_option(
-            "--eval",
-            help="Statement(s) to eval for each file",
-            action="store", dest="do_eval", default=None)
-        parser.add_option(
-            "--end",
-            help="Statement(s) to eval after last file",
-            action="store", dest="do_end", default=None)
-        parser.add_option(
-            "-v",
-            "--verbose", help="Show more detail",
-            action="store_true", dest="verbose", default=False)
-        (self.options, pos_args) = parser.parse_args(args)
-        self.inameGlobs = list()
-        for chk in self.options.inameGlobs: # make case insensitive
-            self.inameGlobs.append(chk.lower())
-        return pos_args
-
-    def Error(self, msg):
-        """Output an error message."""
-        print >> sys.stderr, msg
-
-    def Verbose(self, msg):
-        """Output a message if verbose is set."""
-        if not self.options.verbose:
-            return
-        print >> sys.stderr, msg
-
     def PrintKeyValue(self, d):
         """Pretty print key-values."""
         for k in sorted(d.keys()):
@@ -176,10 +197,9 @@ class TagBoy(object):
                 continue            # skip the dotted names
             print "%40s: %s" % (k, d[k])
 
-
     def CheckMatch(self, fname):
         """Check if path matches a command line match expression."""
-        if not self.options.nameGlobs and not self.options.inameGlobs:
+        if not self.options.nameGlobs and not self.inameGlobs:
             return True         # Nothing means match all
         # BUG: fnmatch is only case insensitive if the filesystem is
         for chk in self.inameGlobs: # First try case insensitive
@@ -190,6 +210,21 @@ class TagBoy(object):
                 return True
         # TODO: path match
         return False
+
+    def Grep(self, tags):
+        """Check if a pattern shows up in selected tags."""
+        matched = 0
+        for mpat, tag_glob in self.greps:
+            keys = fnmatch.filter(tags.keys(), tag_glob) # Expand tag glob
+            #print "Matched keys: ", keys # DEBUG/VERBOSE
+            for kk in keys:
+                if mpat.search(str(tags[kk])):
+                    if self.options.verbose:
+                        print '%s: %s' % (kk, tags[kk])
+                        matched += 1
+                    else:
+                        return 1 # don't find/print them all, just return
+        return matched
 
     def Compile(self, statements):
         """Our compile with error handling."""
@@ -258,6 +293,8 @@ class TagBoy(object):
                     pass
         unified['_'+self.FILEPATH] = fn
         unified['_'+self.FILENAME] = os.path.basename(fn)
+        if self.greps and not self.Grep(unified):
+            return
         if self.options.printpath:
             print fn
         if self.options.ls:
