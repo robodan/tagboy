@@ -18,8 +18,9 @@ arguments), and many arguments can be repeated.  Unlike find(1),
 argument order doesn't matter.
 
 Usage:
-  tagboy ./ --iname '*.jpg' --ls
-  tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy.py ./ --iname '*.jpg' --ls
+  tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
   note: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
 
@@ -96,7 +97,7 @@ class TagBoy(object):
             action="store_true", dest="printpath", default=False)
         parser.add_option(
             "--grep",
-            help="'grep' for PATTERN in TAG_GLOB",
+            help="'grep' for PATTERN in TAG_GLOB (repeatable, show match with -v)",
             nargs = 2,
             action="append", dest="grep", default=[])
         parser.add_option(
@@ -164,8 +165,8 @@ class TagBoy(object):
         for k in metadata.exif_keys:
             kwords = k.split('.')
             try:
-                #v = metadata[k].raw_value # raw strings
-                v = metadata[k]           # processed objects
+                v = metadata[k].raw_value # raw strings
+                #v = metadata[k]           # processed objects
             except ex.ExifValueError:
                 continue
             uni[k] = v

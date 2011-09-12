@@ -30,10 +30,16 @@ thumbnails, and (lastly) the image.
 
 
 Examples:
-./tagboy.py ./ --iname '*.jpg' \
+# Different way to find images with GPS info
+tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+
+# Find images with GPS info using --eval
+tagboy.py ./ --iname '*.jpg' \
   --eval 'skip= 0 if tags.has_key("GPSTag") else 1' --ls
 
-./tagboy.py ./ --iname '*.jpg' \
+# Demonstrate begin/eval/end use and how --echo uses different notation
+# Note that 'Keywords' is the name of a tag
+tagboy.py ./ --iname '*.jpg' \
   --begin 'print "hello world %s" %version' \
   --end 'print "did %d" % (filecount)' \
   --eval 'print "each %s: %s" % (filename, filepath)'  \
