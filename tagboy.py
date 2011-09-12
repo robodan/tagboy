@@ -25,7 +25,7 @@ Usage:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.3'
+VERSION='0.4'
 
 #TODO: Some way to generate a symlink dir from matches (--exec?)
 #TODO: Field comparisons (more than --eval ?)
@@ -97,7 +97,7 @@ class TagBoy(object):
             action="store_true", dest="printpath", default=False)
         parser.add_option(
             "--grep",
-            help="'grep' for PATTERN in TAG_GLOB (repeatable, show match with -v)",
+            help="'grep' for PATTERN in TAG_GLOB (repeatable, -v shows match)",
             nargs = 2,
             action="append", dest="grep", default=[])
         parser.add_option(
@@ -116,6 +116,14 @@ class TagBoy(object):
             "--end",
             help="Statement(s) to eval after last file",
             dest="do_end", default=None)
+        parser.add_option(
+            "-l",
+            "--long", help="Use only long form tag names",
+            action="store_true", dest="long", default=False)
+        parser.add_option(
+            "--maxstr", type="int",
+            help="Maximum string length to print (default 50, 0 = unlimited)",
+            dest="maxstr", default=50)
         parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
@@ -163,30 +171,33 @@ class TagBoy(object):
         uni = dict()
         # BUG? XMP has a copy of everything in EXIF
         for k in metadata.exif_keys:
-            kwords = k.split('.')
             try:
                 v = metadata[k].raw_value # raw strings
                 #v = metadata[k]           # processed objects
             except ex.ExifValueError:
                 continue
             uni[k] = v
-            uni[kwords[-1]] = v
+            if not self.options.long:
+                kwords = k.split('.')
+                uni[kwords[-1]] = v
         for k in metadata.iptc_keys:
-            kwords = k.split('.')
             try:
                 v = metadata[k].raw_value
             except ex.IptcValueError:
                 continue
             uni[k] = v
-            uni[kwords[-1]] = v
+            if not self.options.long:
+                kwords = k.split('.')
+                uni[kwords[-1]] = v
         for k in metadata.xmp_keys:
-            kwords = k.split('.')
             try:
                 v = metadata[k].raw_value
             except ex.XmpValueError:
                 continue
             uni[k] = v
-            uni[kwords[-1]] = v
+            if not self.options.long:
+                kwords = k.split('.')
+                uni[kwords[-1]] = v
         return uni
 
     def PrintKeyValue(self, d):
@@ -194,9 +205,13 @@ class TagBoy(object):
         for k in sorted(d.keys()):
             if not self.options.verbose and k[0] == '_': # internal variable
                 continue
-            if not self.options.verbose and k.find('.') >= 0:
+            if (not self.options.long and
+                not self.options.verbose and k.find('.') >= 0):
                 continue            # skip the dotted names
-            print "%40s: %s" % (k, d[k])
+            value = str(d[k])
+            if self.options.maxstr > 0 and len(value) > self.options.maxstr:
+                value = value[ : self.options.maxstr] + '...'
+            print "%45s: %s" % (k, value)
 
     def CheckMatch(self, fname):
         """Check if path matches a command line match expression."""
