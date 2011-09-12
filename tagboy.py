@@ -26,13 +26,14 @@ Usage:
 # This line must also be valid borne shell for Makefile extraction
 VERSION='0.3'
 
-#TODO: Field comparisons
+#TODO: 'Grep' for strings in a tag glob
+#TODO: Some way to generate a symlink dir from matches (--exec?)
+#TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
 #TODO: Write/read a sqlite3? database with ???
 #TODO: Handle multi-valued fields more nicely
 #TODO: Logging/verbose handling
 #TODO: Thumbnail extraction
-#TODO: 'Grep' for strings in a tag glob
 #TODO:
 
 
@@ -87,7 +88,8 @@ class TagBoy(object):
         for k in metadata.exif_keys:
             kwords = k.split('.')
             try:
-                v = metadata[k].raw_value
+                #v = metadata[k].raw_value # raw strings
+                v = metadata[k]           # processed objects
             except ex.ExifValueError:
                 continue
             uni[k] = v

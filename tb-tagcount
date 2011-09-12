@@ -1,7 +1,7 @@
 #!/bin/bash
-# Have tagboy.py generate a histogram of non-empty tag names
+# Have tagboy.py generate a count of non-empty tags (by name)
 
-# Usage: tb-taghist [options] --imatch '*.jpg' dirs...
+# Usage: tb-tagcount [options] --imatch '*.jpg' dirs...
 
 abort() {
   echo "$@"
@@ -17,6 +17,8 @@ hist={}
 each='\
 global hist
 for kk in tags.keys():
+  if not tags[kk]:
+    continue
   if hist.has_key(kk):
     hist[kk] += 1
   else:
@@ -27,6 +29,7 @@ end='\
 global hist
 for kk in sorted(hist.keys()):
   print "%60s: %d" % (kk, hist[kk])
+print "Looked at %d files" % filecount
 '
 
 tagboy.py --begin "$begin" --eval "$each" --end "$end" "$@"
