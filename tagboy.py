@@ -24,7 +24,7 @@ Usage:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.2'
+VERSION='0.3'
 
 #TODO: Field comparisons
 #TODO: Field assignments
@@ -32,6 +32,7 @@ VERSION='0.2'
 #TODO: Handle multi-valued fields more nicely
 #TODO: Logging/verbose handling
 #TODO: Thumbnail extraction
+#TODO: 'Grep' for strings in a tag glob
 #TODO:
 
 
@@ -71,7 +72,7 @@ class TagBoy(object):
         try:
             metadata.read()
         except IOError:
-            print "Error reading: %s" % fname
+            self.Error("Error reading: %s" % fname)
             metadata = None         # force object distruction
         return metadata
 
@@ -154,6 +155,16 @@ class TagBoy(object):
             self.inameGlobs.append(chk.lower())
         return pos_args
 
+    def Error(self, msg):
+        """Output an error message."""
+        print >> sys.stderr, msg
+
+    def Verbose(self, msg):
+        """Output a message if verbose is set."""
+        if not self.options.verbose:
+            return
+        print >> sys.stderr, msg
+
     def PrintKeyValue(self, d):
         """Pretty print key-values."""
         for k in sorted(d.keys()):
@@ -186,7 +197,8 @@ class TagBoy(object):
             return code
             c = compile(code, self.global_vars, local_vars)
         except Exception as inst:
-            print "Compile failed <%s>: %s" % (inst, self.options.do_eval)
+            self.Error("Compile failed <%s>: %s"
+                       % (inst, self.options.do_eval))
             return None
 
     def Eval(self, code, local_vars):
@@ -196,7 +208,7 @@ class TagBoy(object):
         try:
             eval(code, self.global_vars, local_vars)
         except Exception as inst:
-            print "Eval failed <%s>: %s" % (inst, self.options.do_eval)
+            self.Error("Eval failed <%s>: %s" % (inst, self.options.do_eval))
 
     def DoStart(self):
         """Do setup for first file."""
@@ -234,6 +246,7 @@ class TagBoy(object):
                 return
             for k, v in local_tags.iteritems(): # look for changes
                 if not unified.has_key(k):
+                    # BUG: we should just create the tag (if possible)
                     print "New tag '%s' is ignored" # DEBUG/verbose
                     continue
                 if unified[k] != v:
@@ -246,7 +259,7 @@ class TagBoy(object):
         if self.options.printpath:
             print fn
         if self.options.ls:
-            print "========= %s =========" % (fn)
+            print "==== %s ====" % (fn)
             self.PrintKeyValue(unified)
         for et in self.echoTemplates:
             out = et.safe_substitute(unified)
@@ -265,14 +278,13 @@ def main():
     tb = TagBoy()
     args = tb.HandleArgs(sys.argv[1:])
     if not args:
-        print "No arguments.  Nothing to do."
+        print >> sys.stderr, "No arguments.  Nothing to do."
         return
     try:
         for parg in args:
             if os.path.isdir(parg):
                 # TODO Python 2.6+ supports followlinks=True
                 for root, dirs, files in os.walk(parg):
-                    #print "DEBUG: walk", root, dirs, files
                     for d in dirs:
                         if d.startswith('.'): # ignore hidden directories
                             dirs.remove(d)
@@ -283,7 +295,8 @@ def main():
             elif os.path.isfile(parg):
                 tb.EachFile(parg)
             else:
-                print "Can't find a file/directory named: %s" % (fn)
+                print >> sys.stderr, ("Can't find a file/directory named: %s"
+                                      % (parg))
     except (KeyboardInterrupt, SystemExit):
         pass
     tb.DoEnd()

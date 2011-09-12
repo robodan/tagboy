@@ -1,0 +1,32 @@
+#!/bin/bash
+# Have tagboy.py generate a histogram of non-empty tag names
+
+# Usage: tb-taghist [options] --imatch '*.jpg' dirs...
+
+abort() {
+  echo "$@"
+  exit
+}
+
+# This is the python code that tagboy.py will run
+# We use bash strings to make the formatting easy to see.
+begin='\
+global hist
+hist={}
+'
+each='\
+global hist
+for kk in tags.keys():
+  if hist.has_key(kk):
+    hist[kk] += 1
+  else:
+    hist[kk] = 1
+'
+
+end='\
+global hist
+for kk in sorted(hist.keys()):
+  print "%60s: %d" % (kk, hist[kk])
+'
+
+tagboy.py --begin "$begin" --eval "$each" --end "$end" "$@"
