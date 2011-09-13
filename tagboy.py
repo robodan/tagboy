@@ -112,10 +112,10 @@ class TagBoy(object):
         self.file_count = 0       # number of files encountered
         self.global_vars = dict() # 'global' state passed to eval()
         self.global_vars[self.VERSION] = VERSION
-        self.eval_code = None     # compiled code for each file
-        self.echoTemplates = list() # list of echo statement templates
-        self.execTemplates = list() # list of exec statement templates
-        self.inameGlobs = list()  # list of case converted name globs
+        self.eval_code = list()   # list of compiled code for each file
+        self.echo_tmpl = list()   # list of echo statement templates
+        self.exec_tmpl = list()   # list of exec statement templates
+        self.iname_globs = list() # list of case converted name globs
         self.greps = list()       # list of (RE, glob)
 
     def HandleArgs(self, args):
@@ -208,16 +208,16 @@ class TagBoy(object):
                 "Warning: --symclear is ignored if --symlink is not specified")
 
         for ss in self.options.echoStrings: # convert echo list into templates
-            self.echoTemplates.append(TagTemplate(ss))
+            self.echo_tmpl.append(TagTemplate(ss))
 
         for ss in self.options.execStrings: # convert echo list into templates
-            self.execTemplates.append(TagTemplate(ss))
+            self.exec_tmpl.append(TagTemplate(ss))
 
         if self.options.do_eval:
             self.eval_code = self.Compile(self.options.do_eval)
 
         for chk in self.options.iGlobs: # make case insensitive
-            self.inameGlobs.append(chk.lower())
+            self.iname_globs.append(chk.lower())
 
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
@@ -328,10 +328,10 @@ class TagBoy(object):
 
     def CheckMatch(self, fname):
         """Check if path matches a command line match expression."""
-        if not self.options.nameGlobs and not self.inameGlobs:
+        if not self.options.nameGlobs and not self.iname_globs:
             return True         # Nothing means match all
         # BUG: fnmatch is only case insensitive if the filesystem is
-        for chk in self.inameGlobs: # First try case insensitive
+        for chk in self.iname_globs: # First try case insensitive
             if fnmatch.fnmatchcase(fname.lower(), chk):
                 return True
         for chk in self.options.nameGlobs: # always case sensitive
@@ -360,7 +360,7 @@ class TagBoy(object):
 
     def AllExec(self, var_list):
         """Run all --exec commands."""
-        for et in self.execTemplates:
+        for et in self.exec_tmpl:
             cmd = et.safe_substitute(var_list)
             if self.options.verbose or self.options.noexec:
                 print "Executing: %s" % (cmd)
@@ -466,10 +466,10 @@ class TagBoy(object):
         if self.options.ls:
             print "==== %s ====" % (fn)
             self.PrintKeyValue(unified)
-        for et in self.echoTemplates:
+        for et in self.echo_tmpl:
             out = et.safe_substitute(unified)
             print out
-        if self.execTemplates:
+        if self.exec_tmpl:
             self.AllExec(unified)
         if self.options.linkdir:
             self.SymLink(fn)            
