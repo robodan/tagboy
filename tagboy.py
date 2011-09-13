@@ -40,8 +40,7 @@ VERSION='0.4'
 
 
 import fnmatch
-# hmm? use backported argparse: http://code.google.com/p/argparse/
-import optparse                 # because argparse requires python >= 2.7
+import optparse
 import os
 import pyexiv2 as ex
 import re
@@ -105,6 +104,10 @@ class TagBoy(object):
             "--ignore-case", help="grep pattern should be case insensitive",
             action="store_true", dest="igrep", default=False)
         parser.add_option(
+            "--symlink",
+            help="Symlink selected files into LINKDIR (use with --grep/eval)",
+            dest="linkdir", default=None)
+        parser.add_option(
             "--begin",
             help="Statement(s) to eval before first file",
             dest="do_begin", default=None)
@@ -131,6 +134,11 @@ class TagBoy(object):
         (self.options, pos_args) = parser.parse_args(args)
 
         # process arguments
+        if self.options.linkdir and not os.path.isdir(self.options.linkdir):
+            self.Error("linkdir must be an existing directory: %s" %
+                       self.options.linkdir)
+            sys.exit(1)
+
         self.inameGlobs = list()
         for chk in self.options.inameGlobs: # make case insensitive
             self.inameGlobs.append(chk.lower())
@@ -319,6 +327,22 @@ class TagBoy(object):
         for et in self.echoTemplates:
             out = et.safe_substitute(unified)
             print out
+        if self.options.linkdir:
+            # TODO: be clever and use relative paths if possible
+            abs_path = os.path.abspath(fn)
+            dest_path = os.path.join(self.options.linkdir, os.path.basename(fn))
+            if os.path.exists(dest_path) and os.path.islink(dest_path):
+                try:            # attempt to unlink
+                    os.unlink(dest_path)
+                except:
+                    pass
+            try:
+                os.symlink(abs_path, dest_path)
+                print "ln -s %s %s" % (
+                    abs_path, self.options.linkdir) # DEBUG/verbose
+            except OSError as inst:
+                print "Unable to ln -s %s %s: %s" % (
+                    abs_path, self.options.linkdir, inst) # DEBUG/verbose
 
     def DoEnd(self):
         """Do setup after last file."""
