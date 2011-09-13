@@ -19,20 +19,20 @@ Unlike find, argument order doesn't matter (but repeated arguments
 execute from left to right).
 
 There are three basic phases of execution:
-  Find files using: --iname or --name, or just pass on the command line
-  Select based on the files tags using: --grep or --eval
-  Show something using: --print, --ls, --echo, --symlink, or --eval
+  Find files: --iname or --name, or just pass on the command line
+  Select based on tags: --grep or --eval
+  Show/do something: --print, --ls, --echo, --symlink, --exec, or --eval
 
-If multiple --iname or --name options are given, continue if ANY of
-them match.
+If multiple --iname or --name options are given, select a file if ANY
+of them match.
 
 if multiple --grep options are given, only continue of ALL of them
 match.
 
-For --echo, $TAG or ${TAG} will expand into the files value for that
-tag.  If the file doesn't have that tag, then it will passed through
-unchanged.  In addition to file tags, the program defines: _filename
-and _filepath.
+For --echo or --exec, $TAG or ${TAG} will expand into the files value
+for that tag.  If the file doesn't have that tag, then it will passed
+through unchanged.  In addition to file tags, the program defines:
+_filename, _filepath, _filecount, _version.  
 See:  http://docs.python.org/library/string.html#string.Template
 
 For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
@@ -457,6 +457,8 @@ class TagBoy(object):
                     pass
         unified['_'+self.FILEPATH] = fn
         unified['_'+self.FILENAME] = os.path.basename(fn)
+        unified['_'+self.FILECOUNT] = self.file_count
+        unified['_'+self.VERSION] = VERSION
         if self.greps and not self.Grep(unified):
             return
         if self.options.printpath:
