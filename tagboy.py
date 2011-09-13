@@ -161,6 +161,10 @@ class TagBoy(object):
             help="Symlink selected files into LINKDIR",
             dest="linkdir", default=None)
         parser.add_option(
+            "--symclear",
+            help="Remove all symlinks in LINKDIR before creating new ones",
+            action="store_true", dest="symclear", default=False)
+        parser.add_option(
             "--begin",
             help="Statement(s) to eval before first file",
             dest="do_begin", default=None)
@@ -187,6 +191,16 @@ class TagBoy(object):
             self.Error("linkdir must be an existing directory: %s" %
                        self.options.linkdir)
             sys.exit(1)
+
+        if self.options.symclear and not self.options.linkdir:
+            self.Error(
+                "Warning: --symclear is ignored if --symlink is not specified")
+
+        for ss in self.options.echoStrings: # convert echo list into templates
+            self.echoTemplates.append(TagTemplate(ss))
+
+        if self.options.do_eval:
+            self.eval_code = self.Compile(self.options.do_eval)
 
         for chk in self.options.iGlobs: # make case insensitive
             self.inameGlobs.append(chk.lower())
@@ -268,6 +282,36 @@ class TagBoy(object):
                 value = value[ : self.options.maxstr] + '...'
             print "%45s: %s" % (k, value)
 
+    def SymClear(self):
+        """Clear all symbolic links in options.linkdir."""
+        for fn in os.listdir(self.options.linkdir):
+            dest_path = os.path.join(self.options.linkdir, fn)
+            if os.path.islink(dest_path):
+                try:            # attempt to unlink
+                    os.unlink(dest_path)
+                except:
+                    pass
+
+    def SymLink(self, fn):
+        """Make a symbolic link to file from options.linkdir."""
+        if not self.options.linkdir:
+            return
+        # TODO: be clever and use relative paths if possible
+        abs_path = os.path.abspath(fn)
+        dest_path = os.path.join(self.options.linkdir, os.path.basename(fn))
+        if os.path.exists(dest_path) and os.path.islink(dest_path):
+            try:            # attempt to unlink
+                os.unlink(dest_path)
+            except:
+                pass
+        try:
+            os.symlink(abs_path, dest_path)
+            print "ln -s %s %s" % (
+                abs_path, self.options.linkdir) # DEBUG/verbose
+        except OSError as inst:
+            print "Unable to ln -s %s %s: %s" % (
+                abs_path, self.options.linkdir, inst) # DEBUG/verbose
+
     def CheckMatch(self, fname):
         """Check if path matches a command line match expression."""
         if not self.options.nameGlobs and not self.inameGlobs:
@@ -323,14 +367,11 @@ class TagBoy(object):
 
     def DoStart(self):
         """Do setup for first file."""
-        for ss in self.options.echoStrings: # convert echo list into templates
-            self.echoTemplates.append(TagTemplate(ss))
-        if self.options.do_begin:
-            self.global_vars[self.FILECOUNT] = self.file_count
-            code = self.Compile(self.options.do_begin)
-            self.Eval(code, {})
-        if self.options.do_eval:
-            self.eval_code = self.Compile(self.options.do_eval)
+        if not self.options.do_begin:
+            return
+        self.global_vars[self.FILECOUNT] = self.file_count
+        code = self.Compile(self.options.do_begin)
+        self.Eval(code, {})
 
     def EachDir(self, parg):
         """Handle directory walk."""
@@ -360,6 +401,8 @@ class TagBoy(object):
             return
         if self.file_count == 0:
             self.DoStart()
+            if self.options.symclear:
+                self.SymClear()
         self.file_count += 1
         unified = self.FlattenTags(meta)
 
@@ -400,21 +443,7 @@ class TagBoy(object):
             out = et.safe_substitute(unified)
             print out
         if self.options.linkdir:
-            # TODO: be clever and use relative paths if possible
-            abs_path = os.path.abspath(fn)
-            dest_path = os.path.join(self.options.linkdir, os.path.basename(fn))
-            if os.path.exists(dest_path) and os.path.islink(dest_path):
-                try:            # attempt to unlink
-                    os.unlink(dest_path)
-                except:
-                    pass
-            try:
-                os.symlink(abs_path, dest_path)
-                print "ln -s %s %s" % (
-                    abs_path, self.options.linkdir) # DEBUG/verbose
-            except OSError as inst:
-                print "Unable to ln -s %s %s: %s" % (
-                    abs_path, self.options.linkdir, inst) # DEBUG/verbose
+            self.SymLink(fn)
 
     def DoEnd(self):
         """Do setup after last file."""
