@@ -20,8 +20,14 @@ execute from left to right).
 
 There are three basic phases of execution:
   Find files using: --iname or --name, or just pass on the command line
-  Selecting based on the files tags using: --grep or --eval
+  Select based on the files tags using: --grep or --eval
   Show something using: --print, --ls, --echo, --symlink, or --eval
+
+If multiple --iname or --name options are given, continue if ANY of
+them match.
+
+if multiple --grep options are given, only continue of ALL of them
+match.
 
 For --echo, $TAG or ${TAG} will expand into the files value for that
 tag.  If the file doesn't have that tag, then it will passed through
@@ -33,7 +39,7 @@ For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob):
   ?   - matches any single character
   *   - match zero or more characters
   []  - match the letters or range in the brackets.  e.g. [A-z]
-  [!] - match anything except the letters or range in the brackets.  e.g. [!0-9]
+        If [] starts with !, then match all except these letters or range.
 Unlike shell globbing, {} is not supported (but you can repeat --iname/name).
 See:  http://docs.python.org/library/fnmatch.html#module-fnmatch
 
@@ -65,7 +71,7 @@ Usage:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.4'
+VERSION='0.5'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -278,18 +284,21 @@ class TagBoy(object):
 
     def Grep(self, tags):
         """Check if a pattern shows up in selected tags."""
-        matched = 0
+        all_match = True
         for mpat, tag_glob in self.greps:
             keys = fnmatch.filter(tags.keys(), tag_glob) # Expand tag glob
             #print "Matched keys: ", keys # DEBUG/VERBOSE
+            matched = False
             for kk in keys:
                 if mpat.search(str(tags[kk])):
+                    matched = True
                     if self.options.verbose:
                         print '%s: %s' % (kk, tags[kk])
-                        matched += 1
                     else:
-                        return 1 # don't find/print them all, just return
-        return matched
+                        break
+            if not matched:     # all grep options must match
+                all_match = False
+        return all_match
 
     def Compile(self, statements):
         """Our compile with error handling."""
