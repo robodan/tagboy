@@ -181,8 +181,8 @@ class TagBoy(object):
             dest="do_begin", default=None)
         parser.add_option(
             "--eval",
-            help="Statement(s) to eval for each file",
-            dest="do_eval", default=None)
+            help="Python statement(s) to eval for each file (repeatable)",
+            action="append", dest="do_eval", default=[])
         parser.add_option(
             "--end",
             help="Statement(s) to eval after last file",
@@ -213,8 +213,8 @@ class TagBoy(object):
         for ss in self.options.execStrings: # convert echo list into templates
             self.exec_tmpl.append(TagTemplate(ss))
 
-        if self.options.do_eval:
-            self.eval_code = self.Compile(self.options.do_eval)
+        for ss in self.options.do_eval:
+            self.eval_code.append(self.Compile(ss))
 
         for chk in self.options.iGlobs: # make case insensitive
             self.iname_globs.append(chk.lower())
@@ -442,9 +442,10 @@ class TagBoy(object):
             local_vars[self.FILEPATH] = fn
             local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.SKIP] = 0
-            self.Eval(self.eval_code, local_vars)
-            if local_vars[self.SKIP]:
-                return
+            for cc in self.eval_code:
+                self.Eval(cc, local_vars)
+                if local_vars[self.SKIP]:
+                    return
             for k, v in local_tags.iteritems(): # look for changes
                 if not unified.has_key(k):
                     # BUG: we should just create the tag (if possible)
