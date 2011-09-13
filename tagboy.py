@@ -29,16 +29,27 @@ unchanged.  In addition to file tags, the program defines: _filename
 and _filepath.
 See:  http://docs.python.org/library/string.html#string.Template
 
-For arguments that take 'globs': 
-  ? - matches any single character
-  * - match zero or more characters
-  [] - match the letters or range in the brackets.  e.g. [A-z]
+For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
+  ?   - matches any single character
+  *   - match zero or more characters
+  []  - match the letters or range in the brackets.  e.g. [A-z]
   [!] - match anything except the letters or range in the brackets.  e.g. [!0-9]
-Unlike shell globbing, {} is not supported.
+Unlike shell globbing, {} is not supported (but you can repeat --iname/name).
 See:  http://docs.python.org/library/fnmatch.html#module-fnmatch
 
-The --grep PATTERN is a python regular expression.
-See:  http://docs.python.org/howto/regex.html
+The --grep PATTERN is a python regular expression:
+  .   - match any single character
+  []  - match the letters or range in the brackets.  e.g. [A-z]
+  [!] - match anything except the letters or range in the brackets.  e.g. [!0-9]
+  \d  - match a decimal digit.  \D is anthing except a decimal digit
+  \s  - match whitespace.       \S is anthing except whitespace
+  \w  - match an alphanumeric.  \W is anthing except an alphanumeric
+  *   - match zero or more of the preceeding character or range
+  +   - match one or more of the preceeding character or range
+  ?   - match zero or one of the preceeding character or range
+  ^   - match the start of the string
+  $   - match the end of the string
+There is MUCH MORE here:  http://docs.python.org/howto/regex.html
 
 For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
 addition, the program defines: filename, filepath, filecount, version,
@@ -96,16 +107,16 @@ class TagBoy(object):
         self.global_vars[self.VERSION] = VERSION
         self.eval_code = None     # compiled code for each file
         self.echoTemplates = list() # list of echo statements
-        self.inameGlobs = None  # list of case converted name globs
-        self.greps = None       # list of (RE, glob)
+        self.inameGlobs = list()  # list of case converted name globs
+        self.greps = list()       # list of (RE, glob)
 
     def HandleArgs(self, args):
         """Setup argument parsing and return parsed arguments."""
         parser = optparse.OptionParser(usage=__doc__)
         parser.add_option(
             "--iname",
-            help="Match filename using INAMEGLOBS (case is ignored, repeatable)",
-            action="append", dest="inameGlobs", default=[])
+            help="Match filename using IGLOBS (case is ignored, repeatable)",
+            action="append", dest="iGlobs", default=[])
         parser.add_option(
             "--name",
             help="Match filename using NAMEGLOBS (repeatable)",
@@ -121,23 +132,27 @@ class TagBoy(object):
             action="append", dest="grep", default=[])
         parser.add_option(
             "-i",
-            "--ignore-case", help="grep pattern should be case insensitive",
+            "--ignore-case", help="grep PATTERN should be case insensitive",
             action="store_true", dest="igrep", default=False)
-        parser.add_option(
-            "--echo",
-            help="Echo argument with $vars (repeatable)",
-            action="append", dest="echoStrings", default=[])
-        parser.add_option(
-            "--ls",
-            help="Show image info (more with -v)",
-            action="store_true", dest="ls", default=False)
         parser.add_option(
             "--print",
             help="Print the name of the file",
             action="store_true", dest="printpath", default=False)
         parser.add_option(
+            "--echo",
+            help="Echo string with $var substitution (repeatable)",
+            action="append", dest="echoStrings", default=[])
+        parser.add_option(
+            "--ls",
+            help="Show image info (shows long names with -v or --long)",
+            action="store_true", dest="ls", default=False)
+        parser.add_option(
+            "--maxstr", type="int",
+            help="Maximum string length to print (default 50, 0 = unlimited)",
+            dest="maxstr", default=50)
+        parser.add_option(
             "--symlink",
-            help="Symlink selected files into LINKDIR (use with --grep/eval)",
+            help="Symlink selected files into LINKDIR",
             dest="linkdir", default=None)
         parser.add_option(
             "--begin",
@@ -156,10 +171,6 @@ class TagBoy(object):
             "--long", help="Use only long form tag names",
             action="store_true", dest="long", default=False)
         parser.add_option(
-            "--maxstr", type="int",
-            help="Maximum string length to print (default 50, 0 = unlimited)",
-            dest="maxstr", default=50)
-        parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
@@ -171,11 +182,9 @@ class TagBoy(object):
                        self.options.linkdir)
             sys.exit(1)
 
-        self.inameGlobs = list()
-        for chk in self.options.inameGlobs: # make case insensitive
+        for chk in self.options.iGlobs: # make case insensitive
             self.inameGlobs.append(chk.lower())
 
-        self.greps = list()
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
             self.greps.append((re.compile(pat, compile_flags), targ))
