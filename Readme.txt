@@ -16,7 +16,7 @@ for advanced functionality. Making these arguments repeatable may be
 useful for command line organization.  Files to execute would also be
 helpful (and allow syntax aware editing).
 
-Tags have types.  pyexiv2 is good a maintaining type (although we
+Tags have types.  pyexiv2 is good at maintaining type (although we
 bypass much of it right now) and allowing logical (in python) options
 for that type.  Multi-value tags, rational numbers, dates, and curves
 may require special handling.

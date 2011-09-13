@@ -12,22 +12,50 @@
 
 """As cowboys wrangle cows, tagboy wrangles EXIF/IPTC/XMP tags in images.
 
-This has similar concepts and arguments to find(1), but acts on tags.
-We use new style argument names (double dash before multi-character
-arguments), and many arguments can be repeated.  Unlike find(1),
-argument order doesn't matter.
+tagboy.py uses similar concepts and arguments to find(1), but acts on
+tags.  We use new style argument names (double dash before
+multi-character arguments), and some arguments can be repeated.
+Unlike find, argument order doesn't matter (but repeated arguments
+execute from left to right).
+
+There are three basic phases of execution:
+  Find files using: --iname or --name, or just pass on the command line
+  Selecting based on the files tags using: --grep or --eval
+  Show something using: --print, --ls, --echo, --symlink, or --eval
+
+For --echo, $TAG or ${TAG} will expand into the files value for that
+tag.  If the file doesn't have that tag, then it will passed through
+unchanged.  In addition to file tags, the program defines: _filename
+and _filepath.
+See:  http://docs.python.org/library/string.html#string.Template
+
+For arguments that take 'globs': 
+  ? - matches any single character
+  * - match zero or more characters
+  [] - match the letters or range in the brackets.  e.g. [A-z]
+  [!] - match anything except the letters or range in the brackets.  e.g. [!0-9]
+Unlike shell globbing, {} is not supported.
+See:  http://docs.python.org/library/fnmatch.html#module-fnmatch
+
+The --grep PATTERN is a python regular expression.
+See:  http://docs.python.org/howto/regex.html
+
+For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
+addition, the program defines: filename, filepath, filecount, version,
+and skip.  The skip variable defaults to 0.  If the --eval sets skip
+to a non False value, further processing (e.g. --grep, --ls, --print)
+will be skipped.
 
 Usage:
   tagboy.py ./ --iname '*.jpg' --ls
   tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
   tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
-  note: that you need single quotes to keep the shell from expanding *.jpg
+  NOTE: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
 VERSION='0.4'
 
-#TODO: Some way to generate a symlink dir from matches (--exec?)
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
 #TODO: Write/read a sqlite3? database with ???
@@ -76,12 +104,25 @@ class TagBoy(object):
         parser = optparse.OptionParser(usage=__doc__)
         parser.add_option(
             "--iname",
-            help="Match files (supports ?*[]) with this case insensitive name (repeatable)",
+            help="Match filename using INAMEGLOBS (case is ignored, repeatable)",
             action="append", dest="inameGlobs", default=[])
         parser.add_option(
             "--name",
-            help="Match files (supports ?*[]) with this name (repeatable)",
+            help="Match filename using NAMEGLOBS (repeatable)",
             action="append", dest="nameGlobs", default=[])
+        parser.add_option(
+            "--maxdepth", type="int",
+            help="Maximum number of directories to descend",
+            dest="maxdepth", default=-1)
+        parser.add_option(
+            "--grep",
+            help="search for PATTERN in TAGS_GLOB (repeatable, -v shows match)",
+            nargs = 2,
+            action="append", dest="grep", default=[])
+        parser.add_option(
+            "-i",
+            "--ignore-case", help="grep pattern should be case insensitive",
+            action="store_true", dest="igrep", default=False)
         parser.add_option(
             "--echo",
             help="Echo argument with $vars (repeatable)",
@@ -94,15 +135,6 @@ class TagBoy(object):
             "--print",
             help="Print the name of the file",
             action="store_true", dest="printpath", default=False)
-        parser.add_option(
-            "--grep",
-            help="'grep' for PATTERN in TAG_GLOB (repeatable, -v shows match)",
-            nargs = 2,
-            action="append", dest="grep", default=[])
-        parser.add_option(
-            "-i",
-            "--ignore-case", help="grep pattern should be case insensitive",
-            action="store_true", dest="igrep", default=False)
         parser.add_option(
             "--symlink",
             help="Symlink selected files into LINKDIR (use with --grep/eval)",
@@ -282,7 +314,29 @@ class TagBoy(object):
         if self.options.do_eval:
             self.eval_code = self.Compile(self.options.do_eval)
 
+    def EachDir(self, parg):
+        """Handle directory walk."""
+        # TODO Python 2.6+ supports followlinks=True
+        if parg[-1] == os.sep: # trim final slash
+            parg = parg[:-1]
+        base_count = parg.count(os.sep)
+        for root, dirs, files in os.walk(parg):
+            depth = root.count(os.sep) - base_count
+            #print "walk:", root, dirs, depth # DEBUG
+            if (self.options.maxdepth >= 0
+                and depth >= self.options.maxdepth):
+                del dirs[:] # trim all sub directories
+            else:        
+                for d in dirs:
+                    if d.startswith('.'): # ignore hidden directories
+                        dirs.remove(d)
+            for fn in files:
+                if not self.CheckMatch(fn):
+                    continue
+                self.EachFile(os.path.join(root, fn))
+
     def EachFile(self, fn):
+        """Handle one file."""
         meta = self.ReadMetadata(fn)
         if not meta:
             return
@@ -362,15 +416,7 @@ def main():
     try:
         for parg in args:
             if os.path.isdir(parg):
-                # TODO Python 2.6+ supports followlinks=True
-                for root, dirs, files in os.walk(parg):
-                    for d in dirs:
-                        if d.startswith('.'): # ignore hidden directories
-                            dirs.remove(d)
-                    for fn in files:
-                        if not tb.CheckMatch(fn):
-                            continue
-                        tb.EachFile(os.path.join(root, fn))
+                tb.EachDir(parg)
             elif os.path.isfile(parg):
                 tb.EachFile(parg)
             else:
