@@ -89,6 +89,7 @@ import optparse
 import os
 import pyexiv2 as ex
 import re
+import subprocess
 import string
 import sys
 
@@ -112,7 +113,8 @@ class TagBoy(object):
         self.global_vars = dict() # 'global' state passed to eval()
         self.global_vars[self.VERSION] = VERSION
         self.eval_code = None     # compiled code for each file
-        self.echoTemplates = list() # list of echo statements
+        self.echoTemplates = list() # list of echo statement templates
+        self.execTemplates = list() # list of exec statement templates
         self.inameGlobs = list()  # list of case converted name globs
         self.greps = list()       # list of (RE, glob)
 
@@ -148,6 +150,14 @@ class TagBoy(object):
             "--echo",
             help="Echo string with $var substitution (repeatable)",
             action="append", dest="echoStrings", default=[])
+        parser.add_option(
+            "--exec",
+            help="Execute string with $var substitution (repeatable)",
+            action="append", dest="execStrings", default=[])
+        parser.add_option(
+            "--noexec",
+            help="Don't actually execute --exec options, just show them.",
+            action="store_true", dest="noexec", default=False)
         parser.add_option(
             "--ls",
             help="Show image info (shows long names with -v or --long)",
@@ -198,6 +208,9 @@ class TagBoy(object):
 
         for ss in self.options.echoStrings: # convert echo list into templates
             self.echoTemplates.append(TagTemplate(ss))
+
+        for ss in self.options.execStrings: # convert echo list into templates
+            self.execTemplates.append(TagTemplate(ss))
 
         if self.options.do_eval:
             self.eval_code = self.Compile(self.options.do_eval)
@@ -344,6 +357,17 @@ class TagBoy(object):
                 all_match = False
         return all_match
 
+    def AllExec(self, var_list):
+        """Run all --exec commands."""
+        for et in self.execTemplates:
+            cmd = et.safe_substitute(var_list)
+            if self.options.verbose or self.options.noexec:
+                print "Executing: %s" % (cmd)
+            if self.options.noexec:
+                continue
+            p = subprocess.Popen(cmd, shell=True)
+            sts = os.waitpid(p.pid, 0)[1]
+
     def Compile(self, statements):
         """Our compile with error handling."""
         # TODO: make private
@@ -442,8 +466,10 @@ class TagBoy(object):
         for et in self.echoTemplates:
             out = et.safe_substitute(unified)
             print out
+        if self.execTemplates:
+            self.AllExec(unified)
         if self.options.linkdir:
-            self.SymLink(fn)
+            self.SymLink(fn)            
 
     def DoEnd(self):
         """Do setup after last file."""
