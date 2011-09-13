@@ -155,6 +155,7 @@ class TagBoy(object):
             help="Execute string with $var substitution (repeatable)",
             action="append", dest="execStrings", default=[])
         parser.add_option(
+            "-n",
             "--noexec",
             help="Don't actually execute --exec options, just show them.",
             action="store_true", dest="noexec", default=False)
@@ -425,7 +426,7 @@ class TagBoy(object):
             return
         if self.file_count == 0:
             self.DoStart()
-            if self.options.symclear:
+            if self.options.linkdir and self.options.symclear:
                 self.SymClear()
         self.file_count += 1
         unified = self.FlattenTags(meta)
