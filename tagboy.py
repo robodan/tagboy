@@ -177,16 +177,16 @@ class TagBoy(object):
             action="store_true", dest="symclear", default=False)
         parser.add_option(
             "--begin",
-            help="Statement(s) to eval before first file",
-            dest="do_begin", default=None)
+            help="Python statement(s) to run before first file (repeatable)",
+            action="append", dest="do_begin", default=[])
         parser.add_option(
             "--eval",
-            help="Python statement(s) to eval for each file (repeatable)",
+            help="Python statement(s) to run for each file (repeatable)",
             action="append", dest="do_eval", default=[])
         parser.add_option(
             "--end",
-            help="Statement(s) to eval after last file",
-            dest="do_end", default=None)
+            help="Python statement(s) to run after last file (repeatable)",
+            action="append", dest="do_end", default=[])
         parser.add_option(
             "-l",
             "--long", help="Use only long form tag names",
@@ -395,8 +395,9 @@ class TagBoy(object):
         if not self.options.do_begin:
             return
         self.global_vars[self.FILECOUNT] = self.file_count
-        code = self.Compile(self.options.do_begin)
-        self.Eval(code, {})
+        for cc in self.options.do_begin:
+            code = self.Compile(cc)
+            self.Eval(code, {})
 
     def EachDir(self, parg):
         """Handle directory walk."""
@@ -477,11 +478,11 @@ class TagBoy(object):
 
     def DoEnd(self):
         """Do setup after last file."""
-        if self.file_count == 0:
+        if self.file_count == 0 or not self.options.do_end:
             return
-        if self.options.do_end:
-            self.global_vars[self.FILECOUNT] = self.file_count
-            code = self.Compile(self.options.do_end)
+        self.global_vars[self.FILECOUNT] = self.file_count
+        for cc in self.options.do_end:
+            code = self.Compile(cc)
             self.Eval(code, {})
         
 def main():
