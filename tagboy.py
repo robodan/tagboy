@@ -366,20 +366,6 @@ class TagBoy(object):
             print "Unable to ln -s %s %s: %s" % (
                 abs_path, self.options.linkdir, inst) # DEBUG/verbose
 
-    def CheckMatch(self, fname):
-        """Check if path matches a command line match expression."""
-        if not self.options.nameGlobs and not self.iname_globs:
-            return True         # Nothing means match all
-        # BUG: fnmatch is only case insensitive if the filesystem is
-        for chk in self.iname_globs: # First try case insensitive
-            if fnmatch.fnmatchcase(fname.lower(), chk):
-                return True
-        for chk in self.options.nameGlobs: # always case sensitive
-            if fnmatch.fnmatchcase(fname, chk):
-                return True
-        # TODO: path match
-        return False
-
     def Grep(self, tags):
         """Check if a pattern shows up in selected tags."""
         all_match = True
@@ -451,6 +437,19 @@ class TagBoy(object):
         self.global_vars[self.FILECOUNT] = self.file_count
         for cc in self.begin_code:
             self._Eval(cc, {})
+
+    def CheckMatch(self, fname):
+        """Check if path matches a command line match expression."""
+        if not self.options.nameGlobs and not self.iname_globs:
+            return True         # Nothing means match all
+        # Note: fnmatch is only case insensitive if the filesystem is
+        for chk in self.iname_globs: # First try case insensitive
+            if fnmatch.fnmatchcase(fname.lower(), chk):
+                return True
+        for chk in self.options.nameGlobs: # always case sensitive
+            if fnmatch.fnmatchcase(fname, chk):
+                return True
+        return False
 
     def EachDir(self, parg):
         """Handle directory walk."""

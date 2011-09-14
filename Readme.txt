@@ -10,11 +10,9 @@ understand (and safer).
 Our special variables start with _ in --echo and --ls, but not in
 begin/eval/end.  This is to distinguish them from tags.
 
---begin/eval/end execute python code in a restricted environment.
-This still may not be secure.  It requires users to understand python
-for advanced functionality. Making these arguments repeatable may be
-useful for command line organization.  Files to execute would also be
-helpful (and allow syntax aware editing).
+--begin/eval/end and --beginfile/evalfile/endfile execute python code
+in a restricted environment, but they can still do things like open
+arbitrary files.  Never pass in code from un-trusted sources. 
 
 Tags have types.  pyexiv2 is good at maintaining type (although we
 bypass much of it right now) and allowing logical (in python) options
@@ -29,7 +27,7 @@ The test data is severely trimmed for size.  Our priority is tags,
 thumbnails, and (lastly) the image.
 
 
-Examples:
+EXAMPLES:
 # Different way to find images with GPS info
 tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
 
@@ -45,7 +43,12 @@ tagboy.py ./ --iname '*.jpg' \
   --eval 'print "each %s: %s" % (filename, filepath)'  \
   --echo '$_filename: ${Keywords}'
 
-EXAMPLES:
+# Similar to above, but using files
+tagboy.py tests/ --iname '*.jpg' \
+  --beginfile tests/testdata/tagcount-begin.py \
+  --evalfile tests/testdata/tagcount-eval.py \
+  --endfile tests/testdata/tagcount-end.py  
+
   NOTE: single quotes are necessary to keep the shell from expanding *.jpg
 
    tagboy.py ./ --iname '*.jpg' --ls
