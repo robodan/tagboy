@@ -116,7 +116,9 @@ class TagBoy(object):
         self.file_count = 0       # number of files encountered
         self.global_vars = dict() # 'global' state passed to eval()
         self.global_vars[self.VERSION] = VERSION
+        self.begin_code = list()  # list of compiled code for before any file
         self.eval_code = list()   # list of compiled code for each file
+        self.end_code = list()    # list of compiled code for after all files
         self.echo_tmpl = list()   # list of echo statement templates
         self.exec_tmpl = list()   # list of exec statement templates
         self.iname_globs = list() # list of case converted name globs
@@ -192,6 +194,18 @@ class TagBoy(object):
             help="Python statement(s) to run after last file (repeatable)",
             action="append", dest="do_end", default=[])
         parser.add_option(
+            "--beginfile",
+            help="Python file to run before first file (repeatable)",
+            action="append", dest="begin_files", default=[])
+        parser.add_option(
+            "--evalfile",
+            help="Python file to run for each file (repeatable)",
+            action="append", dest="eval_files", default=[])
+        parser.add_option(
+            "--endfile",
+            help="Python file to run after last file (repeatable)",
+            action="append", dest="end_files", default=[])
+        parser.add_option(
             "-L",
             "--follow", help="Follow symbolic links to directories",
             action="store_true", dest="follow", default=False)
@@ -221,8 +235,21 @@ class TagBoy(object):
         for ss in self.options.execStrings: # convert echo list into templates
             self.exec_tmpl.append(TagTemplate(ss))
 
+        # Compile all code first to flush out any errors
+        for ss in self.options.begin_files:
+            self.begin_code.append(self._CompileFile(ss))
+        for ss in self.options.do_begin:
+            self.begin_code.append(self._Compile(ss))
+
+        for ss in self.options.eval_files:
+            self.eval_code.append(self._CompileFile(ss))
         for ss in self.options.do_eval:
             self.eval_code.append(self._Compile(ss))
+
+        for ss in self.options.end_files:
+            self.end_code.append(self._CompileFile(ss))
+        for ss in self.options.do_end:
+            self.end_code.append(self._Compile(ss))
 
         for chk in self.options.iGlobs: # make case insensitive
             self.iname_globs.append(chk.lower())
@@ -382,33 +409,48 @@ class TagBoy(object):
             p = subprocess.Popen(cmd, shell=True)
             sts = os.waitpid(p.pid, 0)[1]
 
-    def _Compile(self, statements):
+    def _Compile(self, statements, source=None):
         """Our compile with error handling."""
-        # TODO: make private
+        if not source:
+            source = '<string>'
         try:
-            code = compile(statements, '<string>', 'exec')
+            code = compile(statements, source, 'exec')
             return code
-            c = compile(code, self.global_vars, local_vars)
         except Exception as inst:
+            if len(statements) > 80:
+                statements = statements[:80] + '...'
             self.Error("Compile failed <%s>: %s"
-                       % (inst, self.options.do_eval))
-            return None
+                       % (inst, statements))
+            sys.exit(1)
+
+    def _CompileFile(self, fd_or_path, source=None):
+        """Read and compile python code from a file name or descriptor."""
+        if isinstance(fd_or_path, basestring):
+            try:
+                fd = open(fd_or_path, 'r')
+                if not source:
+                    source = fd_or_path
+            except IOError:
+                self.Error("Unable to read: %s" % fd_or_path)
+                sys.exit(1)
+        else:
+            fd = fd_or_path
+        return self._Compile(fd.read(), source)
 
     def _Eval(self, code, local_vars):
         """Our eval with error handling."""
         try:
             eval(code, self.global_vars, local_vars)
         except Exception as inst:
-            self.Error("Eval failed <%s>: %s" % (inst, self.options.do_eval))
+            self.Error("Eval failed <%s>: %s" % (inst, code))
 
     def DoStart(self):
         """Do setup for first file."""
-        if not self.options.do_begin:
+        if not self.begin_code:
             return
         self.global_vars[self.FILECOUNT] = self.file_count
-        for cc in self.options.do_begin:
-            code = self._Compile(cc)
-            self._Eval(code, {})
+        for cc in self.begin_code:
+            self._Eval(cc, {})
 
     def EachDir(self, parg):
         """Handle directory walk."""
@@ -444,7 +486,7 @@ class TagBoy(object):
         unified = self.FlattenTags(meta)
 
         skip = False
-        if self.options.do_eval:
+        if self.eval_code:
             local_tags = dict()
             for k, v in unified.iteritems(): # clone tags as variables
                 local_tags[k] = v
@@ -489,12 +531,11 @@ class TagBoy(object):
 
     def DoEnd(self):
         """Do setup after last file."""
-        if self.file_count == 0 or not self.options.do_end:
+        if self.file_count == 0 or not self.end_code:
             return
         self.global_vars[self.FILECOUNT] = self.file_count
-        for cc in self.options.do_end:
-            code = self._Compile(cc)
-            self._Eval(code, {})
+        for cc in self.end_code:
+            self._Eval(cc, {})
         
 def main():
     tb = TagBoy()
