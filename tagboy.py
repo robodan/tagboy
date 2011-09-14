@@ -3,6 +3,7 @@
 # Uses pyexiv2 (and therefore libexiv2) for tag reading/writing.
 # Dan Christian
 # 5 Sept 2011
+# Requires pyexiv2 0.3+ and python 2.6+
 
 # Features:
 # Be able to take filename on the command line (??? or stdin (e.g. find))
@@ -190,10 +191,10 @@ class TagBoy(object):
             "--end",
             help="Python statement(s) to run after last file (repeatable)",
             action="append", dest="do_end", default=[])
-        #parser.add_option(
-            #"-L",
-            #"--follow", help="Follow symbolic links to directories",
-            #action="store_true", dest="follow", default=False)
+        parser.add_option(
+            "-L",
+            "--follow", help="Follow symbolic links to directories",
+            action="store_true", dest="follow", default=False)
         parser.add_option(
             "-l",
             "--long", help="Use only long form tag names",
@@ -413,11 +414,10 @@ class TagBoy(object):
 
     def EachDir(self, parg):
         """Handle directory walk."""
-        # TODO Python 2.6+ supports followlinks=True
         if parg[-1] == os.sep: # trim final slash
             parg = parg[:-1]
         base_count = parg.count(os.sep)
-        for root, dirs, files in os.walk(parg):
+        for root, dirs, files in os.walk(parg, followlinks=self.options.follow):
             depth = root.count(os.sep) - base_count
             #print "walk:", root, dirs, depth, self.options.maxdepth # DEBUG
             if (self.options.maxdepth >= 0
