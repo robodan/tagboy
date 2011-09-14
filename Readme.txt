@@ -33,8 +33,10 @@ TODO:
   Move most of this into a man page
   Unit tests and regression tests
   Expose typed tags in begin/eval/end (e.g. maybe called tagobj)
+  Handle multi-valued tags more cleanly
   Write changed tag value back to image
   Error handling
+  Work out some real use examples: near GPS position, near time, time adjust
 
 EXAMPLES:
 NOTE: single quotes are necessary to keep the shell from expanding *.jpg
