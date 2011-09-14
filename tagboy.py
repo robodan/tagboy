@@ -222,7 +222,7 @@ class TagBoy(object):
             self.exec_tmpl.append(TagTemplate(ss))
 
         for ss in self.options.do_eval:
-            self.eval_code.append(self.Compile(ss))
+            self.eval_code.append(self._Compile(ss))
 
         for chk in self.options.iGlobs: # make case insensitive
             self.iname_globs.append(chk.lower())
@@ -382,7 +382,7 @@ class TagBoy(object):
             p = subprocess.Popen(cmd, shell=True)
             sts = os.waitpid(p.pid, 0)[1]
 
-    def Compile(self, statements):
+    def _Compile(self, statements):
         """Our compile with error handling."""
         # TODO: make private
         try:
@@ -394,10 +394,8 @@ class TagBoy(object):
                        % (inst, self.options.do_eval))
             return None
 
-    def Eval(self, code, local_vars):
+    def _Eval(self, code, local_vars):
         """Our eval with error handling."""
-        # TODO: make private
-        # TODO: verify security of all this
         try:
             eval(code, self.global_vars, local_vars)
         except Exception as inst:
@@ -409,8 +407,8 @@ class TagBoy(object):
             return
         self.global_vars[self.FILECOUNT] = self.file_count
         for cc in self.options.do_begin:
-            code = self.Compile(cc)
-            self.Eval(code, {})
+            code = self._Compile(cc)
+            self._Eval(code, {})
 
     def EachDir(self, parg):
         """Handle directory walk."""
@@ -457,7 +455,7 @@ class TagBoy(object):
             local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.SKIP] = 0
             for cc in self.eval_code:
-                self.Eval(cc, local_vars)
+                self._Eval(cc, local_vars)
                 if local_vars[self.SKIP]:
                     return
             for k, v in local_tags.iteritems(): # look for changes
@@ -495,8 +493,8 @@ class TagBoy(object):
             return
         self.global_vars[self.FILECOUNT] = self.file_count
         for cc in self.options.do_end:
-            code = self.Compile(cc)
-            self.Eval(code, {})
+            code = self._Compile(cc)
+            self._Eval(code, {})
         
 def main():
     tb = TagBoy()
