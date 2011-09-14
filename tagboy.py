@@ -12,16 +12,19 @@
 
 """As cowboys wrangle cows, tagboy wrangles EXIF/IPTC/XMP tags in images.
 
+USAGE:
+  tagboy.py [path|filename]... [action] [options]
+
+There are three phases of execution:
+  Find files: --iname or --name, or just pass on the command line
+  Select based on tags: --grep or --eval
+  Show/do something: --print, --ls, --echo, --symlink, --exec, or --eval
+
 tagboy.py uses similar concepts and arguments to find(1), but acts on
 tags.  We use new style argument names (double dash before
 multi-character arguments), and some arguments can be repeated.
 Unlike find, argument order doesn't matter (but repeated arguments
 execute from left to right).
-
-There are three basic phases of execution:
-  Find files: --iname or --name, or just pass on the command line
-  Select based on tags: --grep or --eval
-  Show/do something: --print, --ls, --echo, --symlink, --exec, or --eval
 
 If multiple --iname or --name options are given, select a file if ANY
 of them match.
@@ -63,7 +66,7 @@ and skip.  The skip variable defaults to 0.  If the --eval sets skip
 to a non False value, further processing (e.g. --grep, --ls, --print)
 will be skipped.
 
-Usage:
+Examples:
   tagboy.py ./ --iname '*.jpg' --ls
   tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
   tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
@@ -71,7 +74,7 @@ Usage:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.5'
+VERSION='0.6'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -131,7 +134,7 @@ class TagBoy(object):
             action="append", dest="nameGlobs", default=[])
         parser.add_option(
             "--maxdepth", type="int",
-            help="Maximum number of directories to descend",
+            help="Maximum number of directories to descend. 0 means no decent",
             dest="maxdepth", default=-1)
         parser.add_option(
             "--grep",
@@ -187,6 +190,10 @@ class TagBoy(object):
             "--end",
             help="Python statement(s) to run after last file (repeatable)",
             action="append", dest="do_end", default=[])
+        #parser.add_option(
+            #"-L",
+            #"--follow", help="Follow symbolic links to directories",
+            #action="store_true", dest="follow", default=False)
         parser.add_option(
             "-l",
             "--long", help="Use only long form tag names",
@@ -313,8 +320,13 @@ class TagBoy(object):
         # TODO: be clever and use relative paths if possible
         abs_path = os.path.abspath(fn)
         dest_path = os.path.join(self.options.linkdir, os.path.basename(fn))
+
+        if abs_path == dest_path: # points to itself
+            self.Error("Warning: symlink would point to itself: %s" % abs_path)
+            return
+
         if os.path.exists(dest_path) and os.path.islink(dest_path):
-            try:            # attempt to unlink
+            try:                # attempt to unlink
                 os.unlink(dest_path)
             except:
                 pass
@@ -407,13 +419,14 @@ class TagBoy(object):
         base_count = parg.count(os.sep)
         for root, dirs, files in os.walk(parg):
             depth = root.count(os.sep) - base_count
-            #print "walk:", root, dirs, depth # DEBUG
+            #print "walk:", root, dirs, depth, self.options.maxdepth # DEBUG
             if (self.options.maxdepth >= 0
                 and depth >= self.options.maxdepth):
                 del dirs[:] # trim all sub directories
             else:        
                 for d in dirs:
                     if d.startswith('.'): # ignore hidden directories
+                        #print "Trimming hidden: %s" % (d) # DEBUG
                         dirs.remove(d)
             for fn in files:
                 if not self.CheckMatch(fn):
