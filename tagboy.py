@@ -75,7 +75,7 @@ Examples:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.6'
+VERSION='0.7'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments

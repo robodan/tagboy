@@ -88,8 +88,8 @@ tagboy.py ./ --iname '*.jpg' --maxdepth=1 \
 # This will run a case-insensitive search in the current directory
 # and one directory deeper searching for the text "Bob" in tags 
 # named "Artist" or "artist" (technically, the "?" will match any 
-# letter, so if there was a tag named bartist, kartis, martist,
-# and xartist they too would match) that also have the text 
+# letter, so if there was a tag named brtist, krtis, mrtist,
+# and xrtist they too would match) that also have the text 
 # "Shuttle" or "shuttle" in the tag named "Description".  Files
 # that match will have symlinks put in the directory ../Photos AFTER
 # any existing symlinks have been removed.
