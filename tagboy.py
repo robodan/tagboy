@@ -280,43 +280,39 @@ class TagBoy(object):
             metadata = None         # force object distruction
         return metadata
 
-    def FlattenTags(self, metadata):
-        """Convert all tags to a dictionary with a uniform naming style.
+    def HumanStr(self, metadata, key):
+        """Return the most human readable form of key's value."""
+        try:
+            if key in metadata.exif_keys:
+                return metadata[key].human_value
+            else:
+                return metadata[key].raw_value
+        except:
+            self.Error("Error getting value for: %s" % key)
+            return None
+
+    def MakeKeyMap(self, metadata, revmap):
+        """Convert all tag names to a name mapping dictionary.
 
         We store both the fully qualified name and the short name.
         For short names, XMP has precedence over IPTC over EXIF.
         """
-        uni = dict()
-        # BUG? XMP has a copy of everything in EXIF
-        for k in metadata.exif_keys:
-            try:
-                v = metadata[k].raw_value # raw strings
-                #v = metadata[k]           # processed objects
-            except ex.ExifValueError:
+        self._MakeKeyMap(metadata.exif_keys, revmap)
+        self._MakeKeyMap(metadata.iptc_keys, revmap)
+        self._MakeKeyMap(metadata.xmp_keys, revmap)
+
+    def _MakeKeyMap(self, keys, revmap):
+        """Insert name mapping into revmap: long->long and short->long."""
+        for k in keys:
+            revmap[k] = k
+            if self.options.long:
                 continue
-            uni[k] = v
-            if not self.options.long:
-                kwords = k.split('.')
-                uni[kwords[-1]] = v
-        for k in metadata.iptc_keys:
-            try:
-                v = metadata[k].raw_value
-            except ex.IptcValueError:
-                continue
-            uni[k] = v
-            if not self.options.long:
-                kwords = k.split('.')
-                uni[kwords[-1]] = v
-        for k in metadata.xmp_keys:
-            try:
-                v = metadata[k].raw_value
-            except ex.XmpValueError:
-                continue
-            uni[k] = v
-            if not self.options.long:
-                kwords = k.split('.')
-                uni[kwords[-1]] = v
-        return uni
+            kwords = k.split('.')
+            old_map = revmap.get(kwords[-1], None)
+            if False and old_map:
+                print "Revmap changed[%s]: %s -> %s" % (
+                    kwords[-1], old_map, k) # DEBUG/verbose
+            revmap[kwords[-1]] = k
 
     def PrintKeyValue(self, d):
         """Pretty print key-values."""
@@ -482,49 +478,51 @@ class TagBoy(object):
             if self.options.linkdir and self.options.symclear:
                 self.SymClear()
         self.file_count += 1
-        unified = self.FlattenTags(meta)
+        revmap = dict()
+        self.MakeKeyMap(meta, revmap)
 
         skip = False
+        local_tags = dict()
+        for k in revmap.keys(): # clone tags as variables
+            local_tags[k] = self.HumanStr(meta, revmap[k])
         if self.eval_code:
-            local_tags = dict()
-            for k, v in unified.iteritems(): # clone tags as variables
-                local_tags[k] = v
             self.global_vars[self.FILECOUNT] = self.file_count
             local_vars = dict()
             local_vars[self.TAGS] = local_tags
             local_vars[self.FILEPATH] = fn
             local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.SKIP] = 0
+
             for cc in self.eval_code:
                 self._Eval(cc, local_vars)
                 if local_vars[self.SKIP]:
                     return
             for k, v in local_tags.iteritems(): # look for changes
-                if not unified.has_key(k):
+                if not revmap.has_key(k):
                     # BUG: we should just create the tag (if possible)
                     print "New tag '%s' is ignored" # DEBUG/verbose
                     continue
-                if unified[k] != v:
+                if self.HumanStr(meta, revmap[k]) != v:
                     print "Oh look, %s changed: %s -> %s (no writes, yet)" % (
                         k, unified[k], v) # DEBUG/verbose
                     # TODO: write changes to meta
                     pass
-        unified['_'+self.FILEPATH] = fn
-        unified['_'+self.FILENAME] = os.path.basename(fn)
-        unified['_'+self.FILECOUNT] = self.file_count
-        unified['_'+self.VERSION] = VERSION
-        if self.greps and not self.Grep(unified):
+        local_tags['_'+self.FILEPATH] = fn
+        local_tags['_'+self.FILENAME] = os.path.basename(fn)
+        local_tags['_'+self.FILECOUNT] = self.file_count
+        local_tags['_'+self.VERSION] = VERSION
+        if self.greps and not self.Grep(local_tags): # FIX: meta, revmap
             return
         if self.options.printpath:
             print fn
         if self.options.ls:
             print "==== %s ====" % (fn)
-            self.PrintKeyValue(unified)
+            self.PrintKeyValue(local_tags)
         for et in self.echo_tmpl:
-            out = et.safe_substitute(unified)
+            out = et.safe_substitute(local_tags)
             print out
         if self.exec_tmpl:
-            self.AllExec(unified)
+            self.AllExec(meta, local_tags)
         if self.options.linkdir:
             self.SymLink(fn)            
 
