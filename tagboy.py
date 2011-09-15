@@ -362,23 +362,38 @@ class TagBoy(object):
             print "Unable to ln -s %s %s: %s" % (
                 abs_path, self.options.linkdir, inst) # DEBUG/verbose
 
-    def Grep(self, tags):
+    def Grep(self, metadata, revmap):
         """Check if a pattern shows up in selected tags."""
         all_match = True
         for mpat, tag_glob in self.greps:
-            keys = fnmatch.filter(tags.keys(), tag_glob) # Expand tag glob
+            keys = fnmatch.filter(revmap.keys(), tag_glob) # Expand tag glob
             #print "Matched keys: ", keys # DEBUG/VERBOSE
             matched = False
             for kk in keys:
-                if mpat.search(str(tags[kk])):
-                    matched = True
-                    if self.options.verbose:
-                        print '%s: %s' % (kk, tags[kk])
-                    else:
-                        break
+                mk = revmap[kk]
+                if mk in metadata.iptc_keys and metadata[mk].repeatable:
+                    print "[%s] = %s " % (mk, metadata[mk].value) # DEBUG
+                    for vv in metadata[mk].value:
+                        if self._SubGrep(mpat, kk, str(vv)):
+                            matched = True
+                            if not self.options.verbose:
+                                break
+                else:
+                    if self._SubGrep(mpat, kk, self.HumanStr(metadata, mk)):
+                        matched = True
+                        if not self.options.verbose:
+                            break
             if not matched:     # all grep options must match
                 all_match = False
         return all_match
+
+    def _SubGrep(self, mpat, kk, targ):
+        if mpat.search(targ):
+            if self.options.verbose:
+                print '%s: %s' % (kk, targ)
+            return True
+        else:
+            return False
 
     def AllExec(self, var_list):
         """Run all --exec commands."""
@@ -511,7 +526,7 @@ class TagBoy(object):
         local_tags['_'+self.FILENAME] = os.path.basename(fn)
         local_tags['_'+self.FILECOUNT] = self.file_count
         local_tags['_'+self.VERSION] = VERSION
-        if self.greps and not self.Grep(local_tags): # FIX: meta, revmap
+        if self.greps and not self.Grep(meta, revmap):
             return
         if self.options.printpath:
             print fn
