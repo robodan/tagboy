@@ -397,7 +397,7 @@ class TagBoy(object):
             for kk in keys:
                 mk = revmap[kk]
                 if mk in metadata.iptc_keys and metadata[mk].repeatable:
-                    print "[%s] = %s " % (mk, metadata[mk].value) # DEBUG
+                    #print "[%s] = %s " % (mk, metadata[mk].value) # DEBUG
                     for vv in metadata[mk].value:
                         if self._SubGrep(mpat, kk, str(vv)):
                             matched = True
@@ -508,6 +508,11 @@ class TagBoy(object):
                     continue
                 self.EachFile(os.path.join(root, fn))
 
+    def _MakeTagDict(self, meta, revmap, tags):
+        """Convert remap and meta into tags[key] -> value."""
+        for k in revmap.keys(): # clone tags as variables
+            tags[k] = self.HumanStr(meta, revmap[k])
+
     def EachFile(self, fn):
         """Handle one file."""
         meta = self.ReadMetadata(fn)
@@ -521,13 +526,12 @@ class TagBoy(object):
         revmap = dict()
         self.MakeKeyMap(meta, revmap)
 
-        skip = False
         local_tags = dict()
-        for k in revmap.keys(): # clone tags as variables
-            local_tags[k] = self.HumanStr(meta, revmap[k])
         if self.eval_code:
             self.global_vars[self.FILECOUNT] = self.file_count
             local_vars = dict()
+            # TODO: eval should really be dealing with meta directly
+            self._MakeTagDict(meta, revmap, local_tags)
             local_vars[self.TAGS] = local_tags
             local_vars[self.FILEPATH] = fn
             local_vars[self.FILENAME] = os.path.basename(fn)
@@ -547,12 +551,15 @@ class TagBoy(object):
                         k, unified[k], v) # DEBUG/verbose
                     # TODO: write changes to meta
                     pass
+        if self.greps and not self.Grep(meta, revmap):
+            return
+
+        if not local_tags: # the following outputs need a tag-value map
+            self._MakeTagDict(meta, revmap, local_tags)
         local_tags['_'+self.FILEPATH] = fn
         local_tags['_'+self.FILENAME] = os.path.basename(fn)
         local_tags['_'+self.FILECOUNT] = self.file_count
         local_tags['_'+self.VERSION] = VERSION
-        if self.greps and not self.Grep(meta, revmap):
-            return
         if self.options.printpath:
             print fn
         if self.options.ls:
