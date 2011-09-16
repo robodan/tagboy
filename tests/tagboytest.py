@@ -35,11 +35,8 @@ except ImportError:
     sys.exit(1)
 
 class RegressTests(unittest.TestCase):
-    file1 = 'DSCF2132.jpg'
-    file2 = 'DSCN0443.JPG'
-    file3 = 'IMAG0154.jpg'
-    file4 = 'IMAG0160.jpg'
-    file5 = 'IMAG0166.jpg'
+    files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg', 
+             'IMAG0166.jpg']
 
     def setUp(self):
         if os.path.isdir('testdata'):
@@ -53,18 +50,90 @@ class RegressTests(unittest.TestCase):
         self.old_stderr = sys.stderr
         self.tb = tagboy.TagBoy()
 
-    def testSimplePrint(self):
+    def testPrint(self):
         """Simple test of file read and name print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        fpath = os.path.join(self.testdata, self.file1)
+        fpath = os.path.join(self.testdata, self.files[0])
         args = self.tb.HandleArgs([fpath, '--print'])
         self.tb.EachFile(fpath)
-        self.assert_(fpath in sys.stdout.getvalue(),
-                     "Expected '%s' in output: %s"
-                     % (fpath, sys.stdout.getvalue()))
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(fpath in output,
+                     "Expected '%s' in output: %s" % (fpath, output))
         self.assertEqual(self.tb.file_count, 1,
                          "file_count %d != 1" % self.tb.file_count)
+
+    def testLsShort(self):
+        """Test of short tag print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath, '--ls'])
+        self.tb.EachFile(fpath)
+        output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(fpath in output, # check for header
+                     "Expected '%s' in output: %s" % (fpath, output))
+        count = len(output.splitlines())
+        self.assert_(count > 100,
+                         "expected line count %d > 100" % count)
+
+    def testLsLong(self):
+        """Test of long tag print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath, '--ls', '--long'])
+        self.tb.EachFile(fpath)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(fpath in output, # check for header
+                     "Expected '%s' in output: %s" % (fpath, output))
+        count = len(output.splitlines())
+        self.assert_(count > 150,
+                         "expected line count %d > 150" % count)
+
+    def testLsVerbose(self):
+        """Test of verbose tag print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath, '--ls', '-v'])
+        self.tb.EachFile(fpath)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(fpath in output, # check for header
+                     "Expected '%s' in output: %s" % (fpath, output))
+        count = len(output.splitlines())
+        self.assert_(count > 270,
+                         "expected line count %d > 270" % count)
+
+    def testBeginEvalEnd(self):
+        """Simple test of --begin/eval/end."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath,
+                                   '--begin', 'print "HELLO"',
+                                   '--eval', 'print filepath',
+                                   '--end', 'print "BYE"'])
+        self.tb.EachFile(fpath)
+        self.tb.DoEnd()
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+        self.assertEqual(self.tb.file_count, 1,
+                         "file_count %d != 1" % self.tb.file_count)
+        self.assert_("HELLO" in output,
+                     "Expected HELLO in output: %s" % output)
+        self.assert_(fpath in output,
+                     "Expected '%s' in output: %s" % (fpath, output))
+        self.assert_("BYE" in output,
+                     "Expected BYE in output: %s" % output)
 
     def tearDown(self):
         sys.stdout = self.old_stdout

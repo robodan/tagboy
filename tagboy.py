@@ -100,7 +100,7 @@ Examples:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.7'
+VERSION='0.8'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -595,8 +595,8 @@ def main():
     tb = TagBoy()
     args = tb.HandleArgs(sys.argv[1:])
     if not args:
-        print >> sys.stderr, "No arguments.  Nothing to do."
-        return
+        tb.Error("No arguments.  Nothing to do.  Use -h for help.")
+        sys.exit(1)
     try:
         for parg in args:
             if os.path.isdir(parg):
