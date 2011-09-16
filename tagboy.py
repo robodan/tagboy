@@ -104,12 +104,11 @@ VERSION='0.7'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
-#TODO: Write/read a sqlite3? database with ???
-#TODO: Handle multi-valued fields more nicely
-#TODO: Logging/verbose handling
 #TODO: Thumbnail extraction
 #TODO: Read/write image comments (separate from EXIF comments)
 #TODO: Whitelist of interesting tags (others ignored)
+#TODO: Write/read a sqlite3? database with ???
+#TODO: Some kind of diff: show unique tags in dir, show differences from file
 #TODO:
 
 
@@ -242,6 +241,11 @@ class TagBoy(object):
             "-v",
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
+        parser.add_option(
+            "-D",
+            "--debug", help="Show internal details",
+            action="count", dest="debug", default=0)
+
         (self.options, pos_args) = parser.parse_args(args)
 
         # process arguments
@@ -295,6 +299,12 @@ class TagBoy(object):
             return
         print >> sys.stderr, msg
 
+    def Debug(self, level, msg):
+        """Output a message if debug is set."""
+        if self.options.debug < level:
+            return
+        print >> sys.stderr, msg
+
     def ReadMetadata(self, fname):
         """Read file metadata and return."""
         metadata = ex.ImageMetadata(fname)
@@ -334,9 +344,9 @@ class TagBoy(object):
                 continue
             kwords = k.split('.')
             old_map = revmap.get(kwords[-1], None)
-            if False and old_map:
-                print "Revmap changed[%s]: %s -> %s" % (
-                    kwords[-1], old_map, k) # DEBUG/verbose
+            if self.options.debug and old_map:
+                self.Debug(1, "Revmap changed[%s]: %s -> %s"
+                           % (kwords[-1], old_map, k))
             revmap[kwords[-1]] = k
 
     def PrintKeyValue(self, d):
@@ -381,23 +391,22 @@ class TagBoy(object):
                 pass
         try:
             os.symlink(abs_path, dest_path)
-            print "ln -s %s %s" % (
-                abs_path, self.options.linkdir) # DEBUG/verbose
+            self.Verbose("ln -s %s %s" % (abs_path, self.options.linkdir))
         except OSError as inst:
-            print "Unable to ln -s %s %s: %s" % (
-                abs_path, self.options.linkdir, inst) # DEBUG/verbose
+            self.Errof("Unable to ln -s %s %s: %s" % (
+                    abs_path, self.options.linkdir, inst))
 
     def Grep(self, metadata, revmap):
         """Check if a pattern shows up in selected tags."""
         all_match = True
         for mpat, tag_glob in self.greps:
             keys = fnmatch.filter(revmap.keys(), tag_glob) # Expand tag glob
-            #print "Matched keys: ", keys # DEBUG/VERBOSE
+            self.Debug(2, "Matched keys: %s" % keys)
             matched = False
             for kk in keys:
                 mk = revmap[kk]
                 if mk in metadata.iptc_keys and metadata[mk].repeatable:
-                    #print "[%s] = %s " % (mk, metadata[mk].value) # DEBUG
+                    self.Debug(3, "[%s] = %s " % (mk, metadata[mk].value))
                     for vv in metadata[mk].value:
                         if self._SubGrep(mpat, kk, str(vv)):
                             matched = True
@@ -494,14 +503,14 @@ class TagBoy(object):
         base_count = parg.count(os.sep)
         for root, dirs, files in os.walk(parg, followlinks=self.options.follow):
             depth = root.count(os.sep) - base_count
-            #print "walk:", root, dirs, depth, self.options.maxdepth # DEBUG
             if (self.options.maxdepth >= 0
                 and depth >= self.options.maxdepth):
+                self.Debug(2, "Hit maxdepth.  Trimming %s" % dirs)
                 del dirs[:] # trim all sub directories
             else:        
                 for d in dirs:
                     if d.startswith('.'): # ignore hidden directories
-                        #print "Trimming hidden: %s" % (d) # DEBUG
+                        self.Debug(2, "Trimming hidden: %s" % (d))
                         dirs.remove(d)
             for fn in files:
                 if not self.CheckMatch(fn):
@@ -543,13 +552,14 @@ class TagBoy(object):
                     return
             for k, v in local_tags.iteritems(): # look for changes
                 if not revmap.has_key(k):
-                    # BUG: we should just create the tag (if possible)
-                    print "New tag '%s' is ignored" # DEBUG/verbose
+                    # TODO: create the tag (if possible)
+                    self.Debug(0, "New tag '%s' is ignored")
                     continue
                 if self.HumanStr(meta, revmap[k]) != v:
-                    print "Oh look, %s changed: %s -> %s (no writes, yet)" % (
-                        k, unified[k], v) # DEBUG/verbose
                     # TODO: write changes to meta
+                    self.Debug(
+                        0, "Oh look, %s changed: %s -> %s (no writes, yet)" % (
+                            k, unified[k], v))
                     pass
         if self.greps and not self.Grep(meta, revmap):
             return
