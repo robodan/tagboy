@@ -18,4 +18,4 @@ tarall:
 	$(NAME)/tests/testdata/*.{jpg,JPG} $(NAME)/tests/testdata/*.{py,sh} )
 
 check:
-	-for f in tests/*test.py ; do echo $$f; PYTHONPATH=. $$f; done
+	-for f in tests/*test.py ; do echo ==== $$f; PYTHONPATH=. $$f; done

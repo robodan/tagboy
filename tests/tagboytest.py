@@ -25,6 +25,7 @@
 # ******************************************************************************
 
 import os
+import StringIO
 import sys
 import unittest
 try:
@@ -48,15 +49,27 @@ class RegressTests(unittest.TestCase):
         else:
             print "Unable to locate testdata/ or tests/testdata/"
             sys.exit(1)
+        self.old_stdout = sys.stdout
+        self.old_stderr = sys.stderr
+        self.tb = tagboy.TagBoy()
 
     def testSimplePrint(self):
-        print "hello testing world"
-        tb = tagboy.TagBoy()
+        """Simple test of file read and name print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.file1)
-        args = tb.HandleArgs([fpath, '--print'])
-        #TODO: redirect stdout and test
-        tb.EachFile(fpath)
-        print "good bye testing world"
-        
+        args = self.tb.HandleArgs([fpath, '--print'])
+        self.tb.EachFile(fpath)
+        self.assert_(fpath in sys.stdout.getvalue(),
+                     "Expected '%s' in output: %s"
+                     % (fpath, sys.stdout.getvalue()))
+        self.assertEqual(self.tb.file_count, 1,
+                         "file_count %d != 1" % self.tb.file_count)
+        sys.stdout.close()      # free memory
+
+    def tearDown(self):
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+        self.tb = None
+
 if __name__ == "__main__":
     unittest.main()  
