@@ -238,6 +238,10 @@ class TagBoy(object):
             "--long", help="Use only long form tag names",
             action="store_true", dest="long", default=False)
         parser.add_option(
+            "-H",
+            "--with-filename", help="Show filename for each grep -v",
+            action="store_true", dest="withname", default=False)
+        parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
@@ -396,7 +400,7 @@ class TagBoy(object):
             self.Errof("Unable to ln -s %s %s: %s" % (
                     abs_path, self.options.linkdir, inst))
 
-    def Grep(self, metadata, revmap):
+    def Grep(self, fn, metadata, revmap):
         """Check if a pattern shows up in selected tags."""
         all_match = True
         for mpat, tag_glob in self.greps:
@@ -408,12 +412,12 @@ class TagBoy(object):
                 if mk in metadata.iptc_keys and metadata[mk].repeatable:
                     self.Debug(3, "[%s] = %s " % (mk, metadata[mk].value))
                     for vv in metadata[mk].value:
-                        if self._SubGrep(mpat, kk, str(vv)):
+                        if self._SubGrep(mpat, fn, kk, str(vv)):
                             matched = True
                             if not self.options.verbose:
                                 break
                 else:
-                    if self._SubGrep(mpat, kk, self.HumanStr(metadata, mk)):
+                    if self._SubGrep(mpat, fn, kk, self.HumanStr(metadata, mk)):
                         matched = True
                         if not self.options.verbose:
                             break
@@ -421,10 +425,13 @@ class TagBoy(object):
                 all_match = False
         return all_match
 
-    def _SubGrep(self, mpat, kk, targ):
-        if mpat.search(targ):
+    def _SubGrep(self, mpat, fname, kk, targ):
+        if targ is not None and mpat.search(targ):
             if self.options.verbose:
-                print '%s: %s' % (kk, targ)
+                if self.options.withname:
+                    print '%s: %s: %s' % (fname, kk, targ)
+                else:
+                    print '%s: %s' % (kk, targ)
             return True
         else:
             return False
@@ -561,7 +568,7 @@ class TagBoy(object):
                         0, "Oh look, %s changed: %s -> %s (no writes, yet)" % (
                             k, unified[k], v))
                     pass
-        if self.greps and not self.Grep(meta, revmap):
+        if self.greps and not self.Grep(fn, meta, revmap):
             return
 
         if not local_tags: # the following outputs need a tag-value map

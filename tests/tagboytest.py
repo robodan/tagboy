@@ -37,6 +37,7 @@ except ImportError:
 class RegressTests(unittest.TestCase):
     files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg', 
              'IMAG0166.jpg']
+    gps_files = 'DSCN0443.JPG', 'IMAG0160.jpg', 'IMAG0166.jpg'
 
     def setUp(self):
         if os.path.isdir('testdata'):
@@ -49,6 +50,13 @@ class RegressTests(unittest.TestCase):
         self.old_stdout = sys.stdout
         self.old_stderr = sys.stderr
         self.tb = tagboy.TagBoy()
+
+    def tearDown(self):
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+        self.tb = None
+
+    # NOTE: Can't test '-h' because it calls sys.exit()
 
     def testPrint(self):
         """Simple test of file read and name print."""
@@ -64,6 +72,40 @@ class RegressTests(unittest.TestCase):
                      "Expected '%s' in output: %s" % (fpath, output))
         self.assertEqual(self.tb.file_count, 1,
                          "file_count %d != 1" % self.tb.file_count)
+
+    def testWalk(self):
+        """Simple test of directory walk and print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        args = self.tb.HandleArgs([self.testdata,
+                                   '--iname', '*.jpg', '--print'])
+        self.tb.EachDir(self.testdata)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(self.tb.file_count >= len(self.files),
+                     "Expected file_count %d >= %d"
+                     % (self.tb.file_count, len(self.files)))
+        for fn in self.files:
+            self.assert_(fn in output,
+                         "Expected '%s' in output: %s" % (fn, output))
+
+    def testGrep(self):
+        """Simple test of grep and print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
+                                   '--grep', '.', '*GPS*', '--print'])
+        self.tb.EachDir(self.testdata)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(self.tb.file_count >= len(self.files),
+                     "Expected file_count %d >= %d"
+                     % (self.tb.file_count, len(self.files)))
+        for fn in self.gps_files:
+            self.assert_(fn in output,
+                         "Expected '%s' in output: %s" % (fn, output))
 
     def testLsShort(self):
         """Test of short tag print."""
@@ -135,10 +177,6 @@ class RegressTests(unittest.TestCase):
         self.assert_("BYE" in output,
                      "Expected BYE in output: %s" % output)
 
-    def tearDown(self):
-        sys.stdout = self.old_stdout
-        sys.stderr = self.old_stderr
-        self.tb = None
 
 if __name__ == "__main__":
     unittest.main()  
