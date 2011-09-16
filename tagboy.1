@@ -1,0 +1,157 @@
+.TH TAGBOY 1 \" -*- nroff -*-
+.SH NAME
+tagboy \- search image tags in files or a directory hierarchy
+.SH SYNOPSIS
+.B tagboy
+[path|filename]... [action] [options]
+.SH DESCRIPTION
+There are three phases of execution:
+  Find files: --iname or --name, or just pass on the command line
+  Select based on tags: --grep or --eval
+  Show/do something: --print, --ls, --echo, --symlink, --exec, or --eval
+
+tagboy uses similar concepts and arguments to find(1), but acts on
+tags.  Tagboy uses new style argument names (double dash before
+multi-character arguments), and some arguments can be repeated.
+Unlike find, argument order doesn't matter (but repeated arguments
+execute from left to right).
+
+If multiple --iname or --name options are given, select a file if ANY
+of them match.
+
+if multiple --grep options are given, only continue of ALL of them
+match.
+
+.SH OPTIONS
+  -h, --help            show this help message and exit
+  --iname=IGLOBS        Match filename using IGLOBS (case is ignored,
+                        repeatable)
+  --name=NAMEGLOBS      Match filename using NAMEGLOBS (repeatable)
+  --maxdepth=MAXDEPTH   Maximum number of directories to descend. 0 means no
+                        decent
+  --grep=GREP           search for PATTERN in TAGS_GLOB (repeatable, -v shows
+                        match)
+  -i, --ignore-case     grep PATTERN should be case insensitive
+  --print               Print the name of the file
+  --echo=ECHOSTRINGS    Echo string with $var substitution (repeatable)
+  --exec=EXECSTRINGS    Execute string with $var substitution (repeatable)
+  -n, --noexec          Don't actually execute --exec options, just show them.
+  --ls                  Show image info (shows long names with -v or --long)
+  --maxstr=MAXSTR       Maximum string length to print (default 50, 0 =
+                        unlimited)
+  --symlink=LINKDIR     Symlink selected files into LINKDIR
+  --symclear            Remove all symlinks in LINKDIR before creating new
+                        ones
+  --begin=DO_BEGIN      Python statement(s) to run before first file
+                        (repeatable)
+  --eval=DO_EVAL        Python statement(s) to run for each file (repeatable)
+  --end=DO_END          Python statement(s) to run after last file
+                        (repeatable)
+  --beginfile=BEGIN_FILES
+                        Python file to run before first file (repeatable)
+  --evalfile=EVAL_FILES
+                        Python file to run for each file (repeatable)
+  --endfile=END_FILES   Python file to run after last file (repeatable)
+  -L, --follow          Follow symbolic links to directories
+  -l, --long            Use only long form tag names
+  -H, --with-filename   Show filename for each grep -v
+  -v, --verbose         Show more detail
+  -D, --debug           Show internal details
+
+.SH STRING EXPANSION
+For --echo or --exec, $TAG or ${TAG} will expand into the files value
+for that tag.  If the file doesn't have that tag, then it will passed
+through unchanged.  In addition to file tags, the program defines:
+_filename, _filepath, _filecount, _version.  
+See:  http://docs.python.org/library/string.html#string.Template
+
+.SH GLOBS
+For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
+  ?   - matches any single character
+  *   - match zero or more characters
+  []  - match the letters or range in the brackets.  e.g. [A-z]
+        If [] starts with !, then match all except these letters or range.
+Unlike shell globbing, {} is not supported (but you can repeat --iname/name).
+See:  http://docs.python.org/library/fnmatch.html#module-fnmatch
+
+.SH REGULAR EXPRESSIONS
+The --grep PATTERN is a python regular expression:
+  .   - match any single character
+  []  - match the letters or range in the brackets.  e.g. [A-z]
+  [!] - match anything except the letters or range in the brackets.  e.g. [!0-9]
+  \d  - match a decimal digit.  \D is anthing except a decimal digit
+  \s  - match whitespace.       \S is anthing except whitespace
+  \w  - match an alphanumeric.  \W is anthing except an alphanumeric
+  *   - match zero or more of the preceeding character or range
+  +   - match one or more of the preceeding character or range
+  ?   - match zero or one of the preceeding character or range
+  ^   - match the start of the string
+  $   - match the end of the string
+There is MUCH MORE here:  http://docs.python.org/howto/regex.html
+
+.SH CODE EXECUTION
+For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
+addition, the program defines: filename, filepath, filecount, version,
+and skip.  The skip variable defaults to 0.  If the --eval sets skip
+to a non False value, further processing (e.g. --grep, --ls, --print)
+will be skipped.
+
+.SH EXAMPLES
+NOTE: single quotes are necessary to keep the shell from expanding *.jpg
+  tagboy.py ./ --iname '*.jpg' --ls
+  tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+
+tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+# Different way to find images with GPS info
+
+tagboy.py ./ --iname '*.jpg' \
+  --eval 'skip= 0 if tags.has_key("GPSTag") else 1' --ls
+# Find images with GPS info using --eval
+
+tagboy.py ./ --iname '*.jpg' \
+  --begin 'print "hello world %s" %version' \
+  --end 'print "did %d" % (filecount)' \
+  --eval 'print "each %s: %s" % (filename, filepath)'  \
+  --echo '$_filename: ${Keywords}'
+# Demonstrate begin/eval/end use and how --echo uses different notation
+# Note that 'Keywords' is the name of a tag
+
+tagboy.py tests/ --iname '*.jpg' \
+  --beginfile tests/testdata/tagcount-begin.py \
+  --evalfile tests/testdata/tagcount-eval.py \
+  --endfile tests/testdata/tagcount-end.py  
+# Similar to above, but using files
+
+tagboy.py ./ --iname '*.jpg' --ls
+# This will recursively run a case-insensitive search below the 
+# current directory on any file that ends with .jpg and list the
+# file names
+
+tagboy.py ./ --iname '*.jpg' --echo '$_filename: ${Copyright}'
+# This will recursively run a case-insensitive search below the 
+# current directory on any file that ends with .jpg and show
+# the filename and the contents of the tag "Copyright".  If there
+# is no match, that is that tag is empty, then the output will
+# will be a literal "${Copyright}".
+
+tagboy.py ./ --name '*.jpg' --grep '.' '*GPS*' --print'
+# This will recursively run a case-matching search below the 
+# current directory on any file that ends with .jpg and print
+# out the filename of any file that contains any value in a tag
+# with the name that containing GPS, like GPSLatitude, 
+# GPSLongitude, GPSAltitude, etc.  Tag names are case sensitive.  
+# Try --ls to see what the exact tag name is 
+
+tagboy.py ./ --iname '*.jpg' --maxdepth=1 \
+  --grep 'Bob' '?rtist' --grep '[S|s]huttle' 'Description' \
+  --symclear --symlink=../Photos
+# This will run a case-insensitive search in the current directory
+# and one directory deeper searching for the text "Bob" in tags 
+# named "Artist" or "artist" (technically, the "?" will match any 
+# letter, so if there was a tag named brtist, krtis, mrtist,
+# and xrtist they too would match) that also have the text 
+# "Shuttle" or "shuttle" in the tag named "Description".  Files
+# that match will have symlinks put in the directory ../Photos AFTER
+# any existing symlinks have been removed.
+

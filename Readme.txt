@@ -30,8 +30,6 @@ The test data is severely trimmed for size.  Our priority is tags,
 thumbnails, and (lastly) the image.
 
 TODO:
-  Move most of this into a man page
-  More unit tests and regression tests
   Expose typed tags in begin/eval/end (e.g. maybe called tagobj)
   Write changed tag value back to image
   Error handling

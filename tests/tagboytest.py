@@ -107,6 +107,41 @@ class RegressTests(unittest.TestCase):
             self.assert_(fn in output,
                          "Expected '%s' in output: %s" % (fn, output))
 
+    def testGrepEcho(self):
+        """Simple test of grep and echo."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
+                                   '--grep', '.', '*GPS*',
+                                   '--echo', '$_filepath'])
+        self.tb.EachDir(self.testdata)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(self.tb.file_count >= len(self.files),
+                     "Expected file_count %d >= %d"
+                     % (self.tb.file_count, len(self.files)))
+        for fn in self.gps_files:
+            self.assert_(fn in output,
+                         "Expected '%s' in output: %s" % (fn, output))
+
+    def testGrepFilename(self):
+        """Simple test of grep -v -H."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
+                                   '--grep', '.', '*GPS*', '-v', '-H'])
+        self.tb.EachDir(self.testdata)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(self.tb.file_count >= len(self.files),
+                     "Expected file_count %d >= %d"
+                     % (self.tb.file_count, len(self.files)))
+        for fn in self.gps_files:
+            self.assert_(fn in output,
+                         "Expected '%s' in output: %s" % (fn, output))
+
     def testLsShort(self):
         """Test of short tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
