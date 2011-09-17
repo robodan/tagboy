@@ -326,11 +326,10 @@ class TagBoy(object):
         try:
             if key in metadata.exif_keys:
                 return metadata[key].human_value
-            else:
-                return metadata[key].raw_value
+            return metadata[key].raw_value
         except:
-            self.Error("Error getting value for: %s" % key)
-            return None
+            self.Debug("Error getting value for: %s" % key)
+            return ''
 
     def MakeKeyMap(self, metadata, revmap):
         """Convert all tag names to a name mapping dictionary.
@@ -357,6 +356,11 @@ class TagBoy(object):
 
     def PrintKeyValue(self, d):
         """Pretty print key-values."""
+        max_tag = 0
+        for k in sorted(d.keys()): # find longest tag name
+            if len(k) > max_tag:
+                max_tag = len(k)
+
         for k in sorted(d.keys()):
             if not self.options.verbose and k[0] == '_': # internal variable
                 continue
@@ -366,7 +370,7 @@ class TagBoy(object):
             value = str(d[k])
             if self.options.maxstr > 0 and len(value) > self.options.maxstr:
                 value = value[ : self.options.maxstr] + '...'
-            print "%45s: %s" % (k, value)
+            print "%-*s %s" % (max_tag+1, k + ':', value)
 
     def SymClear(self):
         """Clear all symbolic links in options.linkdir."""

@@ -16,6 +16,10 @@ multi-character arguments), and some arguments can be repeated.
 Unlike find, argument order doesn't matter (but repeated arguments
 execute from left to right).
 
+tagboy is based on pyexiv2 (http://tilloy.net/dev/pyexiv2/) which is
+based on exiv2(1) (http://www.exiv2.org/index.html).  You can find
+details of what tag and file types are supported there.
+
 If multiple --iname or --name options are given, select a file if ANY
 of them match.
 
@@ -23,6 +27,8 @@ if multiple --grep options are given, only continue of ALL of them
 match.
 
 .SH OPTIONS
+Use tagboy -h to see the most up to date list of options.
+.nf
   -h, --help            show this help message and exit
   --iname=IGLOBS        Match filename using IGLOBS (case is ignored,
                         repeatable)
@@ -57,6 +63,7 @@ match.
   -H, --with-filename   Show filename for each grep -v
   -v, --verbose         Show more detail
   -D, --debug           Show internal details
+.fi
 
 .SH RETURN VALUES
 .nf
@@ -167,3 +174,5 @@ tagboy.py ./ --iname '*.jpg' --maxdepth=1 \
 # that match will have symlinks put in the directory ../Photos AFTER
 # any existing symlinks have been removed.
 
+.SH BUGS
+tagboy labels tags differently than exiv2(1) or exiftool(1)
