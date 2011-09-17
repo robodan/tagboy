@@ -58,6 +58,14 @@ match.
   -v, --verbose         Show more detail
   -D, --debug           Show internal details
 
+.SH RETURN VALUES
+.nf
+Returns 0 if any files "matched" (i.e. were eligible for --print etc).
+Returns 1 if no files "matched".
+Returns 2 if there was a problem parsing arguments (before execution).
+Returns 3 if there was a problem during execution.
+.fi
+
 .SH STRING EXPANSION
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
 for that tag.  If the file doesn't have that tag, then it will passed
@@ -66,6 +74,7 @@ _filename, _filepath, _filecount, _version.
 See:  http://docs.python.org/library/string.html#string.Template
 
 .SH GLOBS
+.nf
 For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
   ?   - matches any single character
   *   - match zero or more characters
@@ -73,8 +82,10 @@ For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob):
         If [] starts with !, then match all except these letters or range.
 Unlike shell globbing, {} is not supported (but you can repeat --iname/name).
 See:  http://docs.python.org/library/fnmatch.html#module-fnmatch
+.fi
 
 .SH REGULAR EXPRESSIONS
+.nf
 The --grep PATTERN is a python regular expression:
   .   - match any single character
   []  - match the letters or range in the brackets.  e.g. [A-z]
@@ -88,6 +99,7 @@ The --grep PATTERN is a python regular expression:
   ^   - match the start of the string
   $   - match the end of the string
 There is MUCH MORE here:  http://docs.python.org/howto/regex.html
+.fi
 
 .SH CODE EXECUTION
 For --begin/eval/end, all tags are in a dictionary names 'tags'.  In

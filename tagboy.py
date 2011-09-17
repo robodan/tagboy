@@ -61,7 +61,7 @@ match.
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
 for that tag.  If the file doesn't have that tag, then it will passed
 through unchanged.  In addition to file tags, the program defines:
-_filename, _filepath, _filecount, _version.  
+_filename, _filepath, _filecount, _matchcount, _version.  
 See:  http://docs.python.org/library/string.html#string.Template
 
 For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
@@ -87,10 +87,10 @@ The --grep PATTERN is a python regular expression:
 There is MUCH MORE here:  http://docs.python.org/howto/regex.html
 
 For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
-addition, the program defines: filename, filepath, filecount, version,
-and skip.  The skip variable defaults to 0.  If the --eval sets skip
-to a non False value, further processing (e.g. --grep, --ls, --print)
-will be skipped.
+addition, the program defines: filename, filepath, filecount,
+matchcount, version, and skip.  The skip variable defaults to 0.  If
+the --eval sets skip to a non False value, further processing
+(e.g. --grep, --ls, --print) will be skipped.
 
 Examples:
   tagboy.py ./ --iname '*.jpg' --ls
@@ -100,7 +100,7 @@ Examples:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.8'
+VERSION='0.9'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -129,15 +129,17 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    VERSION   = 'version'     # version of tagboy
-    FILECOUNT = 'filecount'   # current count of files read
-    FILENAME  = 'filename'    # file base name
-    FILEPATH  = 'filepath'    # full path
-    SKIP      = 'skip'        # set this to end processing of this file
-    TAGS      = 'tags'        # dictionary of all tags
+    VERSION    = 'version'    # version of tagboy
+    FILECOUNT  = 'filecount'  # current count of files read
+    MATCHCOUNT = 'matchcount' # current count of files read
+    FILENAME   = 'filename'   # file base name
+    FILEPATH   = 'filepath'   # full path
+    SKIP       = 'skip'       # set this to end processing of this file
+    TAGS       = 'tags'       # dictionary of all tags
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
+        self.match_count = 0      # number of files 'matched'
         self.global_vars = dict() # 'global' state passed to eval()
         self.global_vars[self.VERSION] = VERSION
         self.begin_code = list()  # list of compiled code for before any file
@@ -256,7 +258,7 @@ class TagBoy(object):
         if self.options.linkdir and not os.path.isdir(self.options.linkdir):
             self.Error("linkdir must be an existing directory: %s" %
                        self.options.linkdir)
-            sys.exit(1)
+            sys.exit(2)
 
         if self.options.symclear and not self.options.linkdir:
             self.Error(
@@ -459,7 +461,7 @@ class TagBoy(object):
                 statements = statements[:80] + '...'
             self.Error("Compile failed <%s>: %s"
                        % (inst, statements))
-            sys.exit(1)
+            sys.exit(2)
 
     def _CompileFile(self, fd_or_path, source=None):
         """Read and compile python code from a file name or descriptor."""
@@ -470,7 +472,7 @@ class TagBoy(object):
                     source = fd_or_path
             except IOError:
                 self.Error("Unable to read: %s" % fd_or_path)
-                sys.exit(1)
+                sys.exit(2)
         else:
             fd = fd_or_path
         return self._Compile(fd.read(), source)
@@ -545,6 +547,7 @@ class TagBoy(object):
         local_tags = dict()
         if self.eval_code:
             self.global_vars[self.FILECOUNT] = self.file_count
+            self.global_vars[self.MATCHCOUNT] = self.match_count
             local_vars = dict()
             # TODO: eval should really be dealing with meta directly
             self._MakeTagDict(meta, revmap, local_tags)
@@ -571,39 +574,49 @@ class TagBoy(object):
         if self.greps and not self.Grep(fn, meta, revmap):
             return
 
+        self.match_count += 1
         if not local_tags: # the following outputs need a tag-value map
             self._MakeTagDict(meta, revmap, local_tags)
         local_tags['_'+self.FILEPATH] = fn
         local_tags['_'+self.FILENAME] = os.path.basename(fn)
         local_tags['_'+self.FILECOUNT] = self.file_count
+        local_tags['_'+self.MATCHCOUNT] = self.match_count
         local_tags['_'+self.VERSION] = VERSION
+
         if self.options.printpath:
             print fn
+
         if self.options.ls:
             print "==== %s ====" % (fn)
             self.PrintKeyValue(local_tags)
+
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
             print out
+
         if self.exec_tmpl:
             self.AllExec(meta, local_tags)
+
         if self.options.linkdir:
             self.SymLink(fn)            
 
     def DoEnd(self):
-        """Do setup after last file."""
-        if self.file_count == 0 or not self.end_code:
-            return
-        self.global_vars[self.FILECOUNT] = self.file_count
-        for cc in self.end_code:
-            self._Eval(cc, {})
+        """Do final code block after last file.
+        Returns: True if there were matches, else False
+        """
+        if self.file_count > 0 and self.end_code:
+            self.global_vars[self.FILECOUNT] = self.file_count
+            self.global_vars[self.MATCHCOUNT] = self.match_count
+            for cc in self.end_code:
+                self._Eval(cc, dict())
+        return self.match_count > 0
         
 def main():
     tb = TagBoy()
     args = tb.HandleArgs(sys.argv[1:])
     if not args:
         tb.Error("No arguments.  Nothing to do.  Use -h for help.")
-        sys.exit(1)
+        sys.exit(2)
     try:
         for parg in args:
             if os.path.isdir(parg):
@@ -615,7 +628,10 @@ def main():
                                       % (parg))
     except (KeyboardInterrupt, SystemExit):
         pass
-    tb.DoEnd()
+    if tb.DoEnd():
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
