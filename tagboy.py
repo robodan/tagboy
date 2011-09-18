@@ -170,8 +170,9 @@ class TagBoy(object):
             help="Maximum number of directories to descend. 0 means no decent",
             dest="maxdepth", default=-1)
         parser.add_option(
+            "-g",
             "--grep",
-            help="search for PATTERN in TAGS_GLOB (repeatable, -v shows match)",
+            help="search for PATTERN in TAGS_GLOB[;GLOB] (repeatable, -v shows match)",
             nargs = 2,
             action="append", dest="grep", default=[])
         parser.add_option(
@@ -199,6 +200,11 @@ class TagBoy(object):
             "--ls",
             help="Show image info (shows long names with -v or --long)",
             action="store_true", dest="ls", default=False)
+        parser.add_option(
+            "-s",
+            "--select",
+            help="select tags TAGS_GLOB[;GLOB] (repeatable)",
+            action="append", dest="selects", default=[])
         parser.add_option(
             "--maxstr", type="int",
             help="Maximum string length to print (default 50, 0 = unlimited)",
@@ -239,11 +245,6 @@ class TagBoy(object):
             "--endfile",
             help="Python file to run after last file (repeatable)",
             action="append", dest="end_files", default=[])
-        parser.add_option(
-            "-s",
-            "--select",
-            help="select tags TAGS_GLOB[,GLOB]... (repeatable)",
-            action="append", dest="selects", default=[])
         parser.add_option(
             "-L",
             "--follow", help="Follow symbolic links to directories",
@@ -311,11 +312,12 @@ class TagBoy(object):
 
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
-            # TODO?: split targ at commas like --select?
-            self.greps.append((re.compile(pat, compile_flags), targ))
+            rec = re.compile(pat, compile_flags)
+            for tt in targ.split(';'):
+                   self.greps.append((rec, tt))
 
         for targ in self.options.selects:
-            for tt in targ.split(','): # split at commas
+            for tt in targ.split(';'):
                 self.selects.append(tt)
 
         self.global_vars[self.ARG] = self.options.argument
