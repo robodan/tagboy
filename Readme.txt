@@ -30,6 +30,7 @@ The test data is severely trimmed for size.  Our priority is tags,
 thumbnails, and (lastly) the image.
 
 TODO:
+  Build as a properly installed python egg.
   Expose typed tags in begin/eval/end (e.g. maybe called tagobj)
   Write changed tag value back to image
   Error handling

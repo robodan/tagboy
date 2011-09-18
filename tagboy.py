@@ -151,7 +151,8 @@ class TagBoy(object):
         self.echo_tmpl = list()   # list of echo statement templates
         self.exec_tmpl = list()   # list of exec statement templates
         self.iname_globs = list() # list of case converted name globs
-        self.greps = list()       # list of (RE, glob)
+        self.greps = list()       # list of search (RE, glob)
+        self.selects = list()     # list of select globs
 
     def HandleArgs(self, args):
         """Setup argument parsing and return parsed arguments."""
@@ -239,6 +240,11 @@ class TagBoy(object):
             help="Python file to run after last file (repeatable)",
             action="append", dest="end_files", default=[])
         parser.add_option(
+            "-s",
+            "--select",
+            help="select tags TAGS_GLOB[,GLOB]... (repeatable)",
+            action="append", dest="selects", default=[])
+        parser.add_option(
             "-L",
             "--follow", help="Follow symbolic links to directories",
             action="store_true", dest="follow", default=False)
@@ -305,7 +311,12 @@ class TagBoy(object):
 
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
+            # TODO?: split targ at commas like --select?
             self.greps.append((re.compile(pat, compile_flags), targ))
+
+        for targ in self.options.selects:
+            for tt in targ.split(','): # split at commas
+                self.selects.append(tt)
 
         self.global_vars[self.ARG] = self.options.argument
 
@@ -374,10 +385,12 @@ class TagBoy(object):
                            % (kwords[-1], old_map, k))
             revmap[kwords[-1]] = k
 
-    def PrintKeyValue(self, d):
-        """Pretty print key-values."""
+    def PrintKeyValue(self, d, select=[]):
+        """Pretty print key-values.  If select is set, only show those keys"""
         max_tag = 0
         for k in sorted(d.keys()): # find longest tag name
+            if select and not k in select:
+                continue
             if len(k) > max_tag:
                 max_tag = len(k)
 
@@ -387,6 +400,8 @@ class TagBoy(object):
             if (not self.options.long and
                 not self.options.verbose and k.find('.') >= 0):
                 continue            # skip the dotted names
+            if select and not k in select:
+                continue
             value = str(d[k])
             if self.options.maxstr > 0 and len(value) > self.options.maxstr:
                 value = value[ : self.options.maxstr] + '...'
@@ -630,7 +645,17 @@ class TagBoy(object):
                     hdict[hname] = vv
                 self.PrintKeyValue(hdict)
             else:
-                self.PrintKeyValue(local_tags)
+                select_tags = dict()
+                if self.selects:
+                    for ss in self.selects:
+                        keys = fnmatch.filter(revmap.keys(), ss)
+                        for kk in keys:
+                            select_tags[kk] = 0
+                    self.Debug(2, "Matched keys: %s" % keys)
+                    if select_tags:
+                        self.PrintKeyValue(local_tags, select_tags)
+                else:
+                    self.PrintKeyValue(local_tags, select_tags)
 
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
