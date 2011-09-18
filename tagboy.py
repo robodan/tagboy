@@ -129,14 +129,16 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    ARG        = 'arg'        # command line argument
-    FILECOUNT  = 'filecount'  # current count of files read
-    FILENAME   = 'filename'   # file base name
-    FILEPATH   = 'filepath'   # full path
-    MATCHCOUNT = 'matchcount' # current count of files read
-    SKIP       = 'skip'       # set this to end processing of this file
-    TAGS       = 'tags'       # dictionary of all tags
-    VERSION    = 'version'    # version of tagboy
+    ARG        = 'arg'        # name of command line argument
+    FILECOUNT  = 'filecount'  # name of current count of files read
+    FILENAME   = 'filename'   # name of file base name
+    FILEPATH   = 'filepath'   # name of full path
+    MATCHCOUNT = 'matchcount' # name of current count of files read
+    OBJS       = 'objs'       # name of dictionary of tag objects
+    OBJMAP     = 'objmap'     # name of dictionary of tag names short -> long
+    SKIP       = 'skip'       # name of set this to end processing of this file
+    TAGS       = 'tags'       # name of dictionary of all tags
+    VERSION    = 'version'    # name of version of tagboy
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -248,6 +250,9 @@ class TagBoy(object):
             "-H",
             "--with-filename", help="Show filename for each grep -v",
             action="store_true", dest="withname", default=False)
+        parser.add_option(
+            "--human", help="Use human friendly names for tags",
+            action="store_true", dest="human", default=False)
         parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
@@ -563,6 +568,8 @@ class TagBoy(object):
             # TODO: eval should really be dealing with meta directly
             self._MakeTagDict(meta, revmap, local_tags)
             local_vars[self.TAGS] = local_tags
+            local_vars[self.OBJS] = meta
+            local_vars[self.OBJMAP] = revmap
             local_vars[self.FILEPATH] = fn
             local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.SKIP] = 0
@@ -600,7 +607,22 @@ class TagBoy(object):
 
         if self.options.ls:
             print "==== %s ====" % (fn)
-            self.PrintKeyValue(local_tags)
+            if self.options.human:
+                hdict = dict()
+                for kk , vv in local_tags.iteritems():
+                    hname = None
+                    if kk[0] != '_': # not internal
+                        if revmap[kk] in meta.exif_keys:
+                            hname = meta[revmap[kk]].label
+                        else:
+                            hname = meta[revmap[kk]].title
+                    if not hname:
+                        hname = kk
+                    self.Debug(3, "tag to human: %s -> %s" % (kk, hname))
+                    hdict[hname] = vv
+                self.PrintKeyValue(hdict)
+            else:
+                self.PrintKeyValue(local_tags)
 
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
