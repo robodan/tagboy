@@ -212,6 +212,31 @@ class RegressTests(unittest.TestCase):
         self.assert_("BYE" in output,
                      "Expected BYE in output: %s" % output)
 
+    def testEvalArg(self):
+        """Simple test of --begin/eval/end."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath,
+                                   '--begin', 'print "HELLO"',
+                                   '--eval', 'print filepath',
+                                   '--end', 'print "BYE", arg',
+                                   '--arg', 'WALDO'])
+        self.tb.EachFile(fpath)
+        self.tb.DoEnd()
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+        self.assertEqual(self.tb.file_count, 1,
+                         "file_count %d != 1" % self.tb.file_count)
+        self.assert_("HELLO" in output,
+                     "Expected HELLO in output: %s" % output)
+        self.assert_(fpath in output,
+                     "Expected '%s' in output: %s" % (fpath, output))
+        self.assert_("BYE" in output,
+                     "Expected BYE in output: %s" % output)
+        self.assert_("WALDO" in output,
+                     "Expected WALDO in output: %s" % output)
+
 
 if __name__ == "__main__":
     unittest.main()  

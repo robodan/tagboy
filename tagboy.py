@@ -61,7 +61,7 @@ match.
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
 for that tag.  If the file doesn't have that tag, then it will passed
 through unchanged.  In addition to file tags, the program defines:
-_filename, _filepath, _filecount, _matchcount, _version.  
+_arg, _filecount, _filename, _filepath, _matchcount, _version.  
 See:  http://docs.python.org/library/string.html#string.Template
 
 For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
@@ -87,7 +87,7 @@ The --grep PATTERN is a python regular expression:
 There is MUCH MORE here:  http://docs.python.org/howto/regex.html
 
 For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
-addition, the program defines: filename, filepath, filecount,
+addition, the program defines: arg, filecount, filename, filepath,
 matchcount, version, and skip.  The skip variable defaults to 0.  If
 the --eval sets skip to a non False value, further processing
 (e.g. --grep, --ls, --print) will be skipped.
@@ -129,13 +129,14 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    VERSION    = 'version'    # version of tagboy
+    ARG        = 'arg'        # command line argument
     FILECOUNT  = 'filecount'  # current count of files read
-    MATCHCOUNT = 'matchcount' # current count of files read
     FILENAME   = 'filename'   # file base name
     FILEPATH   = 'filepath'   # full path
+    MATCHCOUNT = 'matchcount' # current count of files read
     SKIP       = 'skip'       # set this to end processing of this file
     TAGS       = 'tags'       # dictionary of all tags
+    VERSION    = 'version'    # version of tagboy
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -228,6 +229,10 @@ class TagBoy(object):
             help="Python file to run for each file (repeatable)",
             action="append", dest="eval_files", default=[])
         parser.add_option(
+            "--arg",
+            help="Pass this argument to begin/eval/end",
+            dest="argument", default=None)
+        parser.add_option(
             "--endfile",
             help="Python file to run after last file (repeatable)",
             action="append", dest="end_files", default=[])
@@ -292,6 +297,8 @@ class TagBoy(object):
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
             self.greps.append((re.compile(pat, compile_flags), targ))
+
+        self.global_vars[self.ARG] = self.options.argument
 
         return pos_args
 
@@ -581,9 +588,10 @@ class TagBoy(object):
         self.match_count += 1
         if not local_tags: # the following outputs need a tag-value map
             self._MakeTagDict(meta, revmap, local_tags)
-        local_tags['_'+self.FILEPATH] = fn
-        local_tags['_'+self.FILENAME] = os.path.basename(fn)
+        local_tags['_'+self.ARG] = self.options.argument
         local_tags['_'+self.FILECOUNT] = self.file_count
+        local_tags['_'+self.FILENAME] = os.path.basename(fn)
+        local_tags['_'+self.FILEPATH] = fn
         local_tags['_'+self.MATCHCOUNT] = self.match_count
         local_tags['_'+self.VERSION] = VERSION
 
