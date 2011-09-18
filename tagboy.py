@@ -261,6 +261,10 @@ class TagBoy(object):
             "-D",
             "--debug", help="Show internal details",
             action="count", dest="debug", default=0)
+        parser.add_option(
+            "-V",
+            "--version", help="Show version and exit",
+            action="store_true", dest="version", default=False)
 
         (self.options, pos_args) = parser.parse_args(args)
 
@@ -304,6 +308,10 @@ class TagBoy(object):
             self.greps.append((re.compile(pat, compile_flags), targ))
 
         self.global_vars[self.ARG] = self.options.argument
+
+        if self.options.version:
+            print "Version: %s" % VERSION
+            sys.exit(0)
 
         return pos_args
 
