@@ -391,7 +391,7 @@ class TagBoy(object):
         """Pretty print key-values.  If select is set, only show those keys"""
         max_tag = 0
         for k in sorted(d.keys()): # find longest tag name
-            if select and not k in select:
+            if select and not (k in select):
                 continue
             if len(k) > max_tag:
                 max_tag = len(k)
@@ -402,12 +402,43 @@ class TagBoy(object):
             if (not self.options.long and
                 not self.options.verbose and k.find('.') >= 0):
                 continue            # skip the dotted names
-            if select and not k in select:
+            if select and not (k in select):
                 continue
             value = str(d[k])
             if self.options.maxstr > 0 and len(value) > self.options.maxstr:
                 value = value[ : self.options.maxstr] + '...'
             print "%-*s %s" % (max_tag+1, k + ':', value)
+
+    def List(self, fn, local_tags, meta, revmap):
+        """Print tag info for a file."""
+        select_tags = dict()
+        if self.selects:
+            for ss in self.selects:
+                keys = fnmatch.filter(revmap.keys(), ss)
+                for kk in keys:
+                    select_tags[kk] = 0
+            self.Debug(2, "Matched keys: %s" % keys)
+            if not select_tags: # no selected tags in this file
+                return
+        print "==== %s ====" % (fn)
+        if self.options.human:
+            hdict = dict()
+            for kk , vv in local_tags.iteritems():
+                if self.selects and not (kk in select_tags):
+                    continue
+                hname = None
+                if kk[0] != '_': # not internal
+                    if revmap[kk] in meta.exif_keys:
+                        hname = meta[revmap[kk]].label
+                    else:
+                        hname = meta[revmap[kk]].title
+                if not hname:
+                    hname = kk
+                self.Debug(3, "tag to human: %s -> %s" % (kk, hname))
+                hdict[hname] = vv
+            self.PrintKeyValue(hdict)
+        else:
+            self.PrintKeyValue(local_tags, select_tags)
 
     def SymClear(self):
         """Clear all symbolic links in options.linkdir."""
@@ -631,33 +662,7 @@ class TagBoy(object):
             print fn
 
         if self.options.ls:
-            print "==== %s ====" % (fn)
-            if self.options.human:
-                hdict = dict()
-                for kk , vv in local_tags.iteritems():
-                    hname = None
-                    if kk[0] != '_': # not internal
-                        if revmap[kk] in meta.exif_keys:
-                            hname = meta[revmap[kk]].label
-                        else:
-                            hname = meta[revmap[kk]].title
-                    if not hname:
-                        hname = kk
-                    self.Debug(3, "tag to human: %s -> %s" % (kk, hname))
-                    hdict[hname] = vv
-                self.PrintKeyValue(hdict)
-            else:
-                select_tags = dict()
-                if self.selects:
-                    for ss in self.selects:
-                        keys = fnmatch.filter(revmap.keys(), ss)
-                        for kk in keys:
-                            select_tags[kk] = 0
-                    self.Debug(2, "Matched keys: %s" % keys)
-                    if select_tags:
-                        self.PrintKeyValue(local_tags, select_tags)
-                else:
-                    self.PrintKeyValue(local_tags, select_tags)
+            self.List(fn, local_tags, meta, revmap)
 
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
