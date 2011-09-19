@@ -616,12 +616,14 @@ class TagBoy(object):
         revmap = dict()
         self.MakeKeyMap(meta, revmap)
 
+        if self.greps and not self.Grep(fn, meta, revmap):
+            return
+
         local_tags = dict()
         if self.eval_code:
             self.global_vars[self.FILECOUNT] = self.file_count
             self.global_vars[self.MATCHCOUNT] = self.match_count
             local_vars = dict()
-            # TODO: eval should really be dealing with meta directly
             self._MakeTagDict(meta, revmap, local_tags)
             local_vars[self.TAGS] = local_tags
             local_vars[self.OBJS] = meta
@@ -645,8 +647,6 @@ class TagBoy(object):
                         0, "Oh look, %s changed: %s -> %s (no writes, yet)" % (
                             k, unified[k], v))
                     pass
-        if self.greps and not self.Grep(fn, meta, revmap):
-            return
 
         self.match_count += 1
         if not local_tags: # the following outputs need a tag-value map
@@ -661,12 +661,12 @@ class TagBoy(object):
         if self.options.printpath:
             print fn
 
-        if self.options.ls:
-            self.List(fn, local_tags, meta, revmap)
-
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
             print out
+
+        if self.options.ls:
+            self.List(fn, local_tags, meta, revmap)
 
         if self.exec_tmpl:
             self.AllExec(meta, local_tags)

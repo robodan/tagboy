@@ -175,7 +175,7 @@ class RegressTests(unittest.TestCase):
                          "expected line count %d > 150" % count)
 
     def testLsHuman(self):
-        """Test of long tag print."""
+        """Test of human format tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
         args = self.tb.HandleArgs([fpath, '--ls', '--human'])

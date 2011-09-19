@@ -109,11 +109,13 @@ There is MUCH MORE here:  http://docs.python.org/howto/regex.html
 .fi
 
 .SH CODE EXECUTION
+If --grep is specified, it must match before --eval is executed.
+
 For --begin/eval/end, all tags are in a dictionary names 'tags'.  In
-addition, the program defines: filename, filepath, filecount, version,
-and skip.  The skip variable defaults to 0.  If the --eval sets skip
-to a non False value, further processing (e.g. --grep, --ls, --print)
-will be skipped.
+addition, the program define the variables: filename, filepath,
+filecount, version, and skip.  The skip variable defaults to 0.  If
+the --eval sets skip to a non False value, further processing
+(e.g. --print, --echo, --ls) will be skipped.
 
 .SH EXAMPLES
 NOTE: single quotes are necessary to keep the shell from expanding *.jpg
