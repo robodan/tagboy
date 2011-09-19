@@ -35,14 +35,16 @@ Use tagboy -h to see the most up to date list of options.
   --name=NAMEGLOBS      Match filename using NAMEGLOBS (repeatable)
   --maxdepth=MAXDEPTH   Maximum number of directories to descend. 0 means no
                         decent
-  --grep=GREP           search for PATTERN in TAGS_GLOB (repeatable, -v shows
-                        match)
+  -g GREP, --grep=GREP  search for PATTERN in TAGS_GLOB[;GLOB] (repeatable, -v
+                        shows match)
   -i, --ignore-case     grep PATTERN should be case insensitive
   --print               Print the name of the file
   --echo=ECHOSTRINGS    Echo string with $var substitution (repeatable)
   --exec=EXECSTRINGS    Execute string with $var substitution (repeatable)
   -n, --noexec          Don't actually execute --exec options, just show them.
   --ls                  Show image info (shows long names with -v or --long)
+  -s SELECTS, --select=SELECTS
+                        select tags TAGS_GLOB[;GLOB] (repeatable)
   --maxstr=MAXSTR       Maximum string length to print (default 50, 0 =
                         unlimited)
   --symlink=LINKDIR     Symlink selected files into LINKDIR
@@ -57,12 +59,16 @@ Use tagboy -h to see the most up to date list of options.
                         Python file to run before first file (repeatable)
   --evalfile=EVAL_FILES
                         Python file to run for each file (repeatable)
+  --arg=ARGUMENT        Pass this argument to begin/eval/end
   --endfile=END_FILES   Python file to run after last file (repeatable)
   -L, --follow          Follow symbolic links to directories
   -l, --long            Use only long form tag names
   -H, --with-filename   Show filename for each grep -v
+  --human               Use human friendly names for tags
+  -u, --unknown         Show unknown tags
   -v, --verbose         Show more detail
   -D, --debug           Show internal details
+  -V, --version         Show version and exit
 .fi
 
 .SH RETURN VALUES
