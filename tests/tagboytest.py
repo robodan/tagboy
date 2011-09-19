@@ -36,7 +36,7 @@ except ImportError:
 
 class RegressTests(unittest.TestCase):
     files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg', 
-             'IMAG0166.jpg']
+             'IMAG0166.jpg', 'butterfly-tagtest.jpg']
     gps_files = 'DSCN0443.JPG', 'IMAG0160.jpg', 'IMAG0166.jpg'
 
     def setUp(self):
