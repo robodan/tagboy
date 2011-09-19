@@ -155,8 +155,8 @@ class RegressTests(unittest.TestCase):
         self.assert_(fpath in output, # check for header
                      "Expected '%s' in output: %s" % (fpath, output))
         count = len(output.splitlines())
-        self.assert_(count > 100,
-                         "expected line count %d > 100" % count)
+        self.assert_((count > 115) and (count < 125),
+                         "expected line count 125 > %d > 115" % count)
 
     def testLsLong(self):
         """Test of long tag print."""
@@ -171,8 +171,8 @@ class RegressTests(unittest.TestCase):
         self.assert_(fpath in output, # check for header
                      "Expected '%s' in output: %s" % (fpath, output))
         count = len(output.splitlines())
-        self.assert_(count > 150,
-                         "expected line count %d > 150" % count)
+        self.assert_((count > 150) and (count < 160),
+                         "expected line count 160 > %d > 150" % count)
 
     def testLsHuman(self):
         """Test of human format tag print."""
@@ -187,8 +187,24 @@ class RegressTests(unittest.TestCase):
         self.assert_(fpath in output, # check for header
                      "Expected '%s' in output: %s" % (fpath, output))
         count = len(output.splitlines())
-        self.assert_(count > 130,
-                         "expected line count %d > 130" % count)
+        self.assert_((count > 80) and (count < 85),
+                         "expected line count 85 > %d > 80" % count)
+
+    def testLsHumanU(self):
+        """Test of --human -u tag print."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        fpath = os.path.join(self.testdata, self.files[0])
+        args = self.tb.HandleArgs([fpath, '--ls', '--human', '-u'])
+        self.tb.EachFile(fpath)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(fpath in output, # check for header
+                     "Expected '%s' in output: %s" % (fpath, output))
+        count = len(output.splitlines())
+        self.assert_((count > 130) and (count < 135),
+                         "expected line count 135 > %d > 130" % count)
 
     def testLsVerbose(self):
         """Test of verbose tag print."""
@@ -203,8 +219,8 @@ class RegressTests(unittest.TestCase):
         self.assert_(fpath in output, # check for header
                      "Expected '%s' in output: %s" % (fpath, output))
         count = len(output.splitlines())
-        self.assert_(count > 270,
-                         "expected line count %d > 270" % count)
+        self.assert_((count > 275) and (count < 285),
+                         "expected line count 285 > %d > 275" % count)
 
     def testBeginEvalEnd(self):
         """Simple test of --begin/eval/end."""

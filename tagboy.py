@@ -261,6 +261,10 @@ class TagBoy(object):
             "--human", help="Use human friendly names for tags",
             action="store_true", dest="human", default=False)
         parser.add_option(
+            "-u",
+            "--unknown", help="Show unknown tags",
+            action="store_true", dest="unknown", default=False)
+        parser.add_option(
             "-v",
             "--verbose", help="Show more detail",
             action="store_true", dest="verbose", default=False)
@@ -433,6 +437,8 @@ class TagBoy(object):
                     else:
                         hname = meta[revmap[kk]].title
                 if not hname:
+                    if not self.options.unknown:
+                        continue # just skip it
                     hname = kk
                 self.Debug(3, "tag to human: %s -> %s" % (kk, hname))
                 hdict[hname] = vv
