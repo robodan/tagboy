@@ -240,7 +240,7 @@ class TagBoy(object):
         parser.add_option(
             "--arg",
             help="Pass this argument to begin/eval/end",
-            dest="argument", default=None)
+            dest="argument", default='')
         parser.add_option(
             "--endfile",
             help="Python file to run after last file (repeatable)",
@@ -416,6 +416,8 @@ class TagBoy(object):
     def List(self, fn, local_tags, meta, revmap, select_tags=[]):
         """Print tag info for a file."""
         print "==== %s ====" % (fn)
+        if (select_tags is not None) and (not select_tags):
+            return              # no selected tags in this file
         if self.options.human:
             hdict = dict()
             for kk , vv in local_tags.iteritems():
@@ -617,15 +619,14 @@ class TagBoy(object):
             return
 
         local_tags = dict()
-        select_tags = dict()
+        select_tags = None
         if self.selects:
+            select_tags = dict()
             for ss in self.selects:
                 keys = fnmatch.filter(revmap.keys(), ss)
                 for kk in keys:
                     select_tags[kk] = revmap[kk]
             self.Debug(2, "Matched keys: %s" % keys)
-            if not select_tags: # no selected tags in this file
-                return
         if self.eval_code:
             self.global_vars[self.FILECOUNT] = self.file_count
             self.global_vars[self.MATCHCOUNT] = self.match_count
