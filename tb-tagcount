@@ -1,5 +1,5 @@
 #!/bin/bash
-# Have tagboy.py generate a count of non-empty tags (by name)
+# Have tagboy generate a count of non-empty tags (by name)
 
 # Usage: tb-tagcount [options] --imatch '*.jpg' dirs...
 
@@ -34,4 +34,4 @@ for kk in sorted(hist.keys()):
 print "Looked at %d files" % filecount
 '
 
-tagboy.py --begin "$begin" --eval "$each" --end "$end" "$@"
+tagboy --begin "$begin" --eval "$each" --end "$end" "$@"
