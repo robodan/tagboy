@@ -20,7 +20,7 @@ print "Here we go..."
 
 each='\
 global all
-tkeys = selected.keys() if selected else tags.keys()
+tkeys = selected.keys() if (selected is not None) else tags.keys()
 
 for kk in tkeys:
   vv = tags[kk]

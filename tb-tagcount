@@ -18,7 +18,8 @@ hist={}
 # We count only long names with non-empty values
 each='\
 global hist
-tkeys = selected.keys() if selected else tags.keys()
+tkeys = selected.keys() if (selected is not None) else tags.keys()
+
 for kk in tkeys:
   if not tags[kk] or kk.find(".") < 1:
     continue
