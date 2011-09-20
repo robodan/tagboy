@@ -1,0 +1,51 @@
+#!/bin/bash
+# Have tagboy find tag differences
+
+# Usage: tb-tagdiff [options] --imatch '*.jpg' dirs...
+
+abort() {
+  echo "$@"
+  exit
+}
+
+# This is the python code that tagboy.py will run
+# We use bash strings to make the formatting easy to see.
+begin='\
+global all
+all={}
+print "Here we go..."
+'
+
+# We count only long names with non-empty values
+each='\
+global all
+tkeys = selected.keys() if selected else tags.keys()
+
+for kk in tkeys:
+  vv = str(tags[kk])
+  if len(vv) > 80:
+    vv = vv[:80] + "..."
+  if not (kk in all):
+    all[kk] = list()
+    all[kk].append(vv)
+  else:
+    if not (vv in all[kk]):
+      all[kk].append(vv)
+'
+
+end='\
+global all
+print "Looked at %d files" % filecount
+print "These tags never changed (or appeared only once):"
+for kk in sorted(all.keys()):
+  if len(all[kk]) != 1:
+    continue
+  print "== %s: %s" % (kk, all[kk][0])
+print "These tags changed:"
+for kk in sorted(all.keys()):
+  if len(all[kk]) == 1:
+    continue
+  print "=== %s (%d):\n\"%s\"" % (kk, len(all[kk]), "\", \"".join(all[kk]))
+'
+
+tagboy --begin "$begin" --eval "$each" --end "$end" --long "$@"
