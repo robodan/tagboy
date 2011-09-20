@@ -125,18 +125,18 @@ the --eval sets skip to a non False value, further processing
 
 .SH EXAMPLES
 NOTE: single quotes are necessary to keep the shell from expanding *.jpg
-  tagboy.py ./ --iname '*.jpg' --ls
-  tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
-  tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+  tagboy ./ --iname '*.jpg' --ls
+  tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
 
 tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
 # Different way to find images with GPS info
 
-tagboy.py ./ --iname '*.jpg' \
+tagboy ./ --iname '*.jpg' \
   --eval 'skip= 0 if tags.has_key("GPSTag") else 1' --ls
 # Find images with GPS info using --eval
 
-tagboy.py ./ --iname '*.jpg' \
+tagboy ./ --iname '*.jpg' \
   --begin 'print "hello world %s" %version' \
   --end 'print "did %d" % (filecount)' \
   --eval 'print "each %s: %s" % (filename, filepath)'  \
@@ -144,25 +144,25 @@ tagboy.py ./ --iname '*.jpg' \
 # Demonstrate begin/eval/end use and how --echo uses different notation
 # Note that 'Keywords' is the name of a tag
 
-tagboy.py tests/ --iname '*.jpg' \
+tagboy tests/ --iname '*.jpg' \
   --beginfile tests/testdata/tagcount-begin.py \
   --evalfile tests/testdata/tagcount-eval.py \
   --endfile tests/testdata/tagcount-end.py  
 # Similar to above, but using files
 
-tagboy.py ./ --iname '*.jpg' --ls
+tagboy ./ --iname '*.jpg' --ls
 # This will recursively run a case-insensitive search below the 
 # current directory on any file that ends with .jpg and list the
 # file names
 
-tagboy.py ./ --iname '*.jpg' --echo '$_filename: ${Copyright}'
+tagboy ./ --iname '*.jpg' --echo '$_filename: ${Copyright}'
 # This will recursively run a case-insensitive search below the 
 # current directory on any file that ends with .jpg and show
 # the filename and the contents of the tag "Copyright".  If there
 # is no match, that is that tag is empty, then the output will
 # will be a literal "${Copyright}".
 
-tagboy.py ./ --name '*.jpg' --grep '.' '*GPS*' --print'
+tagboy ./ --name '*.jpg' --grep '.' '*GPS*' --print'
 # This will recursively run a case-matching search below the 
 # current directory on any file that ends with .jpg and print
 # out the filename of any file that contains any value in a tag
@@ -170,7 +170,7 @@ tagboy.py ./ --name '*.jpg' --grep '.' '*GPS*' --print'
 # GPSLongitude, GPSAltitude, etc.  Tag names are case sensitive.  
 # Try --ls to see what the exact tag name is 
 
-tagboy.py ./ --iname '*.jpg' --maxdepth=1 \
+tagboy ./ --iname '*.jpg' --maxdepth=1 \
   --grep 'Bob' '?rtist' --grep '[S|s]huttle' 'Description' \
   --symclear --symlink=../Photos
 # This will run a case-insensitive search in the current directory

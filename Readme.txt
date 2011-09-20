@@ -4,7 +4,7 @@ Dan Christian
 
 Notes:
 
-The main user documentation is the built in help:  tagboy.py -h
+The main user documentation is the built in help:  tagboy -h
 
 --echo can't do anything that --eval can't do, but it's easier to
 understand (and safer).  

@@ -39,14 +39,14 @@
 """As cowboys wrangle cows, tagboy wrangles EXIF/IPTC/XMP tags in images.
 
 USAGE:
-  tagboy.py [path|filename]... [action] [options]
+  tagboy [path|filename]... [action] [options]
 
 There are three phases of execution:
   Find files: --iname or --name, or just pass on the command line
   Select based on tags: --grep or --eval
   Show/do something: --print, --ls, --echo, --symlink, --exec, or --eval
 
-tagboy.py uses similar concepts and arguments to find(1), but acts on
+tagboy uses similar concepts and arguments to find(1), but acts on
 tags.  We use new style argument names (double dash before
 multi-character arguments), and some arguments can be repeated.
 Unlike find, argument order doesn't matter (but repeated arguments
@@ -93,9 +93,9 @@ the --eval sets skip to a non False value, further processing
 (e.g. --grep, --ls, --print) will be skipped.
 
 Examples:
-  tagboy.py ./ --iname '*.jpg' --ls
-  tagboy.py ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
-  tagboy.py ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+  tagboy ./ --iname '*.jpg' --ls
+  tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
   NOTE: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
 
