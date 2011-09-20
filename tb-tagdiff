@@ -1,7 +1,7 @@
 #!/bin/bash
 # Have tagboy find tag differences
 
-# Usage: tb-tagdiff [options] --imatch '*.jpg' dirs...
+# Usage: tb-tagdiff [options] --imatch '*.jpg' dir --select '*Caption;*Location;*Artist;*Keywords;*Comment;*Author'
 
 abort() {
   echo "$@"
@@ -29,11 +29,11 @@ for kk in tkeys:
   if len(vv) > 80:
     vv = vv[:80] + "..."
   if not (kk in all):
-    all[kk] = list()
-    all[kk].append(vv)
+    all[kk] = dict()
+    all[kk][vv] = 0
   else:
     if not (vv in all[kk]):
-      all[kk].append(vv)
+      all[kk][vv] = 0
 '
 
 end='\
@@ -43,12 +43,12 @@ print "These tags never changed (or appeared only once):"
 for kk in sorted(all.keys()):
   if len(all[kk]) != 1:
     continue
-  print "== %s: %s" % (kk, all[kk][0])
+  print "== %s: %s" % (kk, all[kk][all[kk].keys()[0]])
 print "These tags changed:"
 for kk in sorted(all.keys()):
   if len(all[kk]) == 1:
     continue
-  print "=== %s (%d):\n\"%s\"" % (kk, len(all[kk]), "\", \"".join(sorted(all[kk])))
+  print "=== %s (%d):\n\"%s\"" % (kk, len(all[kk]), "\", \"".join(sorted(all[kk].keys())))
 '
 
 tagboy --begin "$begin" --eval "$each" --end "$end" --long "$@"
