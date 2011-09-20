@@ -100,7 +100,7 @@ Examples:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction
-VERSION='0.9'
+VERSION='0.10'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -129,16 +129,17 @@ class TagTemplate(string.Template):
 class TagBoy(object):
     """Class that implements tag mapulation."""
     # string constants defining the names of fields/variables
-    ARG        = 'arg'        # name of command line argument
-    FILECOUNT  = 'filecount'  # name of current count of files read
-    FILENAME   = 'filename'   # name of file base name
-    FILEPATH   = 'filepath'   # name of full path
-    MATCHCOUNT = 'matchcount' # name of current count of files read
-    OBJS       = 'objs'       # name of dictionary of tag objects
-    OBJMAP     = 'objmap'     # name of dictionary of tag names short -> long
-    SKIP       = 'skip'       # name of set this to end processing of this file
-    TAGS       = 'tags'       # name of dictionary of all tags
-    VERSION    = 'version'    # name of version of tagboy
+    ARG        = 'arg'        # name of command line argument (string)
+    FILECOUNT  = 'filecount'  # name of current count of files read (int)
+    FILENAME   = 'filename'   # name of file base name (string)
+    FILEPATH   = 'filepath'   # name of full path (string)
+    MATCHCOUNT = 'matchcount' # name of current count of files read (int)
+    OBJS       = 'objs'       # name of dict of tag objects: name -> object
+    OBJMAP     = 'objmap'     # name of dict of tag names: short -> long
+    SELECTED   = 'selected'   # name of dict of --select tags short -> long
+    SKIP       = 'skip'       # name of set True to end processing of this file
+    TAGS       = 'tags'       # name of dict of all tags: name -> value
+    VERSION    = 'version'    # name of version of tagboy (string)
 
     def __init__(self):
         self.file_count = 0       # number of files encountered
@@ -413,17 +414,8 @@ class TagBoy(object):
                 value = value[ : self.options.maxstr] + '...'
             print "%-*s %s" % (max_tag+1, k + ':', value)
 
-    def List(self, fn, local_tags, meta, revmap):
+    def List(self, fn, local_tags, meta, revmap, select_tags=[]):
         """Print tag info for a file."""
-        select_tags = dict()
-        if self.selects:
-            for ss in self.selects:
-                keys = fnmatch.filter(revmap.keys(), ss)
-                for kk in keys:
-                    select_tags[kk] = 0
-            self.Debug(2, "Matched keys: %s" % keys)
-            if not select_tags: # no selected tags in this file
-                return
         print "==== %s ====" % (fn)
         if self.options.human:
             hdict = dict()
@@ -626,16 +618,26 @@ class TagBoy(object):
             return
 
         local_tags = dict()
+        select_tags = dict()
+        if self.selects:
+            for ss in self.selects:
+                keys = fnmatch.filter(revmap.keys(), ss)
+                for kk in keys:
+                    select_tags[kk] = revmap[kk]
+            self.Debug(2, "Matched keys: %s" % keys)
+            if not select_tags: # no selected tags in this file
+                return
         if self.eval_code:
             self.global_vars[self.FILECOUNT] = self.file_count
             self.global_vars[self.MATCHCOUNT] = self.match_count
             local_vars = dict()
             self._MakeTagDict(meta, revmap, local_tags)
-            local_vars[self.TAGS] = local_tags
-            local_vars[self.OBJS] = meta
-            local_vars[self.OBJMAP] = revmap
-            local_vars[self.FILEPATH] = fn
             local_vars[self.FILENAME] = os.path.basename(fn)
+            local_vars[self.FILEPATH] = fn
+            local_vars[self.OBJS] = meta # DOC
+            local_vars[self.OBJMAP] = revmap # DOC
+            local_vars[self.SELECTED] = select_tags # DOC
+            local_vars[self.TAGS] = local_tags
             local_vars[self.SKIP] = 0
 
             for cc in self.eval_code:
@@ -672,7 +674,7 @@ class TagBoy(object):
             print out
 
         if self.options.ls:
-            self.List(fn, local_tags, meta, revmap)
+            self.List(fn, local_tags, meta, revmap, select_tags)
 
         if self.exec_tmpl:
             self.AllExec(meta, local_tags)
