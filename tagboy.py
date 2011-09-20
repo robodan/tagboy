@@ -366,7 +366,7 @@ class TagBoy(object):
                 return metadata[key].human_value
             return metadata[key].raw_value
         except:
-            self.Debug("Error getting value for: %s" % key)
+            self.Debug(1, "Error getting value for: %s" % key)
             return ''
 
     def MakeKeyMap(self, metadata, revmap):
