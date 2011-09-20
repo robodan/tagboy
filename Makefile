@@ -13,7 +13,8 @@ install:
 tar:
 	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \
 	(cd ..; tar czf $(TARDIR)/$(NAME)-$$VERSION.tgz --exclude-backups \
-	$(NAME)/COPYING $(NAME)/*.{py,txt,1} $(NAME)/tb-*[A-z])
+	$(NAME)/COPYING $(NAME)/*.{py,txt,1} $(NAME)/tb-*[A-z] \
+	$(NAME)/Makefile)
 
 # Build tarball for development (with tests)
 tarall:
