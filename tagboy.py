@@ -108,7 +108,6 @@ VERSION='0.11'
 #TODO: Read/write image comments (separate from EXIF comments)
 #TODO: Whitelist of interesting tags (others ignored)
 #TODO: Write/read a sqlite3? database with ???
-#TODO: Some kind of diff: show unique tags in dir, show differences from file
 #TODO:
 
 

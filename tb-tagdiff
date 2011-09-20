@@ -48,7 +48,7 @@ print "These tags changed:"
 for kk in sorted(all.keys()):
   if len(all[kk]) == 1:
     continue
-  print "=== %s (%d):\n\"%s\"" % (kk, len(all[kk]), "\", \"".join(all[kk]))
+  print "=== %s (%d):\n\"%s\"" % (kk, len(all[kk]), "\", \"".join(sorted(all[kk])))
 '
 
 tagboy --begin "$begin" --eval "$each" --end "$end" --long "$@"
