@@ -22,7 +22,10 @@ global all
 tkeys = selected.keys() if selected else tags.keys()
 
 for kk in tkeys:
-  vv = str(tags[kk])
+  vv = tags[kk]
+  if isinstance(vv, (list, tuple)) and len(vv) == 1:
+    vv = vv[0]
+  vv = str(vv)
   if len(vv) > 80:
     vv = vv[:80] + "..."
   if not (kk in all):
