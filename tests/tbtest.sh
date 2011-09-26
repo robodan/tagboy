@@ -32,8 +32,16 @@ Test_tb-gpspos() {
     grep -q "butterfly-tagtest.jpg" $out || error "Didn't find butterfly-tagtest.jpg in $out"
 }
 
+Test_tb-tagcount() {
+    out="$tmp_dir/Test_tb-tagcount.out"
+    $tdir/tb-tagcount "$testdata" --iname '*.jpg' > "$out"
+    lines=`wc -l "$out" | cut -f1 -d' '`
+    [[ "$lines" -gt 360 ]] || error "Too few lines in $out"
+}
+
 main() {
-  Test_tb-gpspos
+  echo "Test_tb-gpspos" && Test_tb-gpspos
+  echo "Test_tb-tagcount" && Test_tb-tagcount
 }
 
 main "$@"
@@ -41,5 +49,7 @@ main "$@"
 echo "Encountered $errors errors"
 if [[ "$errors" = 0 ]] ; then
   rm -rf "$tmp_dir"
+else
+  echo "Leaving $tmp_dir for debugging"
 fi
 
