@@ -3,7 +3,7 @@ TARDIR = ~/dload
 PREFIX = /usr/local
 INSTALL = install
 
-.PHONY: tar tarall check
+.PHONY: tar tarall check check-py check-sh
 .PHONY: install install-bin install-man
 
 # Install on system (run under sudo)
@@ -31,5 +31,10 @@ tarall:
 	$(NAME)/tests/testdata/*.{jpg,JPG} $(NAME)/tests/testdata/*.{py,sh} )
 
 # Run all tests
-check:
+check:	check-py check-sh
+
+check-py:
 	-for f in tests/*test.py ; do echo ==== $$f; PYTHONPATH=. $$f; done
+
+check-sh:
+	-for f in tests/*test.sh ; do echo ==== $$f; PYTHONPATH=. $$f; done
