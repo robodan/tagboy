@@ -21,28 +21,27 @@ abort() {
 # This is the python code that tagboy.py will run
 # We use bash strings to make the formatting easy to see.
 begin='\
-global pos
+import re
+global pos, subst_re
 pos={}
+subst_re=re.compile("\\.\d+")
 print "Looking for files at similar GPS locations..."
 '
 # A dictionary of dictionaries makes searching fast
 # pos["lat, lon"] -> (filepath...)
 
 each='\
-global pos
+import re
+global pos, subst_re
 
 try:
-  lat = objs["Exif.GPSInfo.GPSLatitude"].human_value
-  lon = objs["Exif.GPSInfo.GPSLongitude"].human_value
-  n = lat.find(".")
-  if n > 0:
-    lat = lat[:n]
-  n = lon.find(".")
-  if n > 0:
-    lon = lon[:n]
+  lat = objs["Exif.GPSInfo.GPSLatitude"].human_value.strip()
+  lon = objs["Exif.GPSInfo.GPSLongitude"].human_value.strip()
+  lat2 = re.sub(subst_re, "", lat)
+  lon2 = re.sub(subst_re, "", lon)
   if not ("0/0" in lat):
-    kk = "%s, %s" % (lat, lon)
-    #print "lat: %s, lon: %s -> %s" % (lat, lon, kk)
+    #print "lat: %s -> %s; \tlon: %s -> %s" % (lat, lat2, lon, lon2)
+    kk = "%s, %s" % (lat2, lon2)
     if not (kk in pos):
       pos[kk] = list()
     pos[kk].append(filepath)
@@ -55,7 +54,7 @@ except KeyError:
 end='\
 global pos
 print "Found %d out of %d files." % (matchcount, filecount)
-print "Here are files at the same integer second:"
+print "Here are files at the same integer second (~50-100ft):"
 for kk in sorted(pos.keys()):
   print "@@ %s:\n%s" % (kk, "\n".join(pos[kk]))
 '

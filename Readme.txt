@@ -30,9 +30,7 @@ The test data is severely trimmed for size.  Our priority is tags,
 thumbnails, and (lastly) the image.
 
 TODO:
-  Build as a properly installed python egg.
   Include helper routines to make dates, GPS, etc easier to compare
-  Expose typed tags in begin/eval/end (e.g. objs and objmap)
   Write changed tag value back to image
   Error handling
   Work out some real use examples: near GPS position, near time, time adjust
