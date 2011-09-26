@@ -1,0 +1,63 @@
+#!/bin/bash
+# Have tagboy find images from about the same position
+
+# Usage: tb-gpspos [options] --imatch '*.jpg' dir
+
+# This is crude.  We just use the human printed position (which is
+# deg, minutes, seconds) and strip off any decimal portion.
+# From: http://www.zodiacal.com/tools/lat_table.php
+# At the Equator:
+# One second of latitude =   30.72 m  or 100.77 ft
+# One second of longitude =  30.92 m  or 101.45 ft
+# At latitude 40deg:
+# One second of latitude =   30.84 m  or 101.19 ft
+# One second of longitude =  23.72 m  or  77.82 ft
+
+abort() {
+  echo "$@"
+  exit
+}
+
+# This is the python code that tagboy.py will run
+# We use bash strings to make the formatting easy to see.
+begin='\
+global pos
+pos={}
+print "Looking for files at similar GPS locations..."
+'
+# A dictionary of dictionaries makes searching fast
+# pos["lat, lon"] -> (filepath...)
+
+each='\
+global pos
+
+try:
+  lat = objs["Exif.GPSInfo.GPSLatitude"].human_value
+  lon = objs["Exif.GPSInfo.GPSLongitude"].human_value
+  n = lat.find(".")
+  if n > 0:
+    lat = lat[:n]
+  n = lon.find(".")
+  if n > 0:
+    lon = lon[:n]
+  if not ("0/0" in lat):
+    kk = "%s, %s" % (lat, lon)
+    #print "lat: %s, lon: %s -> %s" % (lat, lon, kk)
+    if not (kk in pos):
+      pos[kk] = list()
+    pos[kk].append(filepath)
+  else:
+    skip = 1
+except KeyError:
+  skip = 1
+'
+
+end='\
+global pos
+print "Found %d out of %d files." % (matchcount, filecount)
+print "Here are files at the same integer second:"
+for kk in sorted(pos.keys()):
+  print "@@ %s:\n%s" % (kk, "\n".join(pos[kk]))
+'
+
+tagboy --begin "$begin" --eval "$each" --end "$end" --long "$@"
