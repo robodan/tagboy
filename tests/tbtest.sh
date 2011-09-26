@@ -1,5 +1,6 @@
 #!/bin/bash
 # Test tb-* scripts
+# Nothing fancy here.  Mainly checking for crashes and missing output.
 
 # Usage: tbtest.sh
 
@@ -27,6 +28,8 @@ testdata="$tdir/tests/testdata"
 Test_tb-gpspos() {
     out="$tmp_dir/Test_tb-gpspos.out"
     $tdir/tb-gpspos "$testdata" --iname '*.jpg' > "$out"
+    ret=$?
+    [[ "$ret" = 0 ]] || error "Expected return status of 0, not $ret"
     grep -q "IMAG0166.jpg" $out || error "Didn't find IMAG0166.jpg in $out"
     grep -q "IMAG0160.jpg" $out || error "Didn't find IMAG0160.jpg in $out"
     grep -q "butterfly-tagtest.jpg" $out || error "Didn't find butterfly-tagtest.jpg in $out"
@@ -35,6 +38,8 @@ Test_tb-gpspos() {
 Test_tb-tagcount() {
     out="$tmp_dir/Test_tb-tagcount.out"
     $tdir/tb-tagcount "$testdata" --iname '*.jpg' > "$out"
+    ret=$?
+    [[ "$ret" = 0 ]] || error "Expected return status of 0, not $ret"
     lines=`wc -l "$out" | cut -f1 -d' '`
     [[ "$lines" -gt 360 ]] || error "Too few lines in $out"
 }
@@ -42,6 +47,8 @@ Test_tb-tagcount() {
 Test_tb-tagdiff() {
     out="$tmp_dir/Test_tb-tagdiff.out"
     $tdir/tb-tagdiff "$testdata" --iname '*.jpg' > "$out"
+    ret=$?
+    [[ "$ret" = 0 ]] || error "Expected return status of 0, not $ret"
     lines=`wc -l "$out" | cut -f1 -d' '`
     [[ "$lines" -gt 420 ]] || error "Too few lines in $out"
 }
