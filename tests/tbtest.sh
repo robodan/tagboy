@@ -57,7 +57,9 @@ main "$@"
 echo "Encountered $errors errors"
 if [[ "$errors" = 0 ]] ; then
   rm -rf "$tmp_dir"
+  exit 0
 else
   echo "Leaving $tmp_dir for debugging"
+  exit 1
 fi
 
