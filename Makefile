@@ -1,13 +1,19 @@
 NAME = tagboy
 TARDIR = ~/dload
 PREFIX = /usr/local
+INSTALL = install
 
-.PHONY: tar, tarall, check, install
+.PHONY: tar tarall check
+.PHONY: install install-bin install-man
 
 # Install on system (run under sudo)
-install:
-	cp tagboy $(PREFIX)/bin/
-	cp tagboy.1 $(PREFIX)/share/man/man1/
+install:	install-bin install-man
+
+install-bin:
+	$(INSTALL) -v -m 755 tagboy $(PREFIX)/bin/
+
+install-man:
+	$(INSTALL) -v -m 644 tagboy.1 $(PREFIX)/share/man/man1/
 
 # Build tarball for distribution (no space hogging tests/testdata)
 tar:
