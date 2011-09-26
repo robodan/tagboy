@@ -16,7 +16,7 @@ error() {
   (( errors += 1 ))
 }
 
-tmp_dir="/tmp/$LOGIN-tb-test"
+tmp_dir="/tmp/${LOGNAME}_tb-test"
 [[ -d "$tmp_dir" ]] || mkdir "$tmp_dir"
 [[ -d "$tmp_dir" ]] || abort "Unable to access: $tmp_dir"
 [[ -r "./tagboy" ]] && tdir="./" ||  tdir="../"
@@ -39,9 +39,17 @@ Test_tb-tagcount() {
     [[ "$lines" -gt 360 ]] || error "Too few lines in $out"
 }
 
+Test_tb-tagdiff() {
+    out="$tmp_dir/Test_tb-tagdiff.out"
+    $tdir/tb-tagdiff "$testdata" --iname '*.jpg' > "$out"
+    lines=`wc -l "$out" | cut -f1 -d' '`
+    [[ "$lines" -gt 420 ]] || error "Too few lines in $out"
+}
+
 main() {
   echo "Test_tb-gpspos" && Test_tb-gpspos
   echo "Test_tb-tagcount" && Test_tb-tagcount
+  echo "Test_tb-tagdiff" && Test_tb-tagdiff
 }
 
 main "$@"
