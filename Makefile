@@ -27,7 +27,7 @@ tarall:
 	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \
 	(cd ..; tar czf $(TARDIR)/$(NAME)_all-$$VERSION.tgz --exclude-backups \
 	$(NAME)/COPYING $(NAME)/*.{py,txt,1} $(NAME)/tb-*[A-z] \
-        $(NAME)/Makefile $(NAME)/tests/*test.py \
+        $(NAME)/Makefile $(NAME)/tests/*test.{py,sh} \
 	$(NAME)/tests/testdata/*.{jpg,JPG} $(NAME)/tests/testdata/*.{py,sh} )
 
 # Run all tests
