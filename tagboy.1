@@ -124,8 +124,10 @@ For --begin/eval/end, the following variables are defined:
   filepath  string, full path to file
   filecount int, number of files encountered (starting with 1)
   filematch int, number of files that 'matched' both --grep and --eval
-  selected  dictionary, { short_name -> long_name }
-  tags      dictionary { short_name -> value }
+  objs      dictionary, { long_name -> object } (EXPERIMENTAL)
+  objmap    dictionary, { any_name -> long_name } (EXPERIMENTAL)
+  selected  dictionary, { selected_name -> long_name }
+  tags      dictionary { name -> value }
   skip      boolean, set to true to skip (i.e. not match) this file.
   version   string, tagboy version string
 .fi
