@@ -6,8 +6,8 @@ Notes:
 
 The main user documentation is the built in help:  tagboy -h
 
---echo can't do anything that --eval can't do, but it's easier to
-understand (and safer).  
+--echo is a subset of --eval, but it's easier to understand (and
+safer).
 
 Our special variables start with _ in --echo and --exec, but not in
 begin/eval/end.  This is somewhat confusing, but necessary to
