@@ -28,10 +28,12 @@
 # Uses pyexiv2 (and therefore libexiv2) for tag reading/writing.
 # Dan Christian
 # 5 Sept 2011
-# Requires pyexiv2 0.3+ and python 2.7 or later
+# Requires pyexiv2 0.3+ and python 2.7
+
+# TODO: convert to gexiv2 https://wiki.gnome.org/Projects/gexiv2
 
 # Features:
-# Be able to take filenames on the command line (??? or stdin (e.g. find))
+# Be able to take filenames or directories on the command line
 # Be able to search directory trees for files matching patterns
 # Be able to select files based on tag patterns
 # Be able to write/insert/append to tag fields (include from other fields)
@@ -56,6 +58,9 @@ If multiple --iname or --name options are given, select a file if ANY
 of them match.
 
 if multiple --grep options are given, only continue if ALL of them
+match.
+
+If multiple --near options are given, select a file if ANY of them
 match.
 
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
@@ -100,7 +105,7 @@ Examples:
 """                             # NOTE: this is also the usage string in help
 
 # This line must also be valid borne shell for Makefile extraction.  No spaces allowed.
-VERSION='0.11'
+VERSION='0.12'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -119,6 +124,20 @@ import re
 import subprocess
 import string
 import sys
+
+from math import cos, asin, sqrt
+
+
+def distance(latlon1, latlon2):
+    """Distance in km between two lat/lon positions using haversine."""
+    # Note: will blow up if positions are half way around the world
+    # assumes a spherical world
+    # https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
+    lat1, lon1 = latlon1
+    lat2, lon2 = latlon2
+    p = 0.017453292519943295     #Pi/180
+    a = 0.5 - cos((lat2 - lat1) * p)/2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
+    return 12742 * asin(sqrt(a)) #2*R*asin...
 
 
 class TagTemplate(string.Template):
@@ -141,6 +160,9 @@ class TagBoy(object):
     TAGS       = 'tags'       # name of dict of all tags: name -> value
     VERSION    = 'version'    # name of version of tagboy (string)
 
+                                        # parse degree, minutes, seconds.  e.g. 37deg 16' 25.870
+    DMS_RE = re.compile("\s*(\d+)deg (\d+)' ([0-9.]+)\s*")
+
     def __init__(self):
         self.file_count = 0       # number of files encountered
         self.match_count = 0      # number of files 'matched'
@@ -154,6 +176,7 @@ class TagBoy(object):
         self.iname_globs = list() # list of case converted name globs
         self.greps = list()       # list of search (RE, glob)
         self.selects = list()     # list of select globs
+        self.near = list()        # list of places of interest
 
     def HandleArgs(self, args):
         """Setup argument parsing and return parsed arguments."""
@@ -206,6 +229,15 @@ class TagBoy(object):
             "--select",
             help="select tags TAGS_GLOB[;GLOB] (repeatable)",
             action="append", dest="selects", default=[])
+        parser.add_option(
+            "--near",
+            help="match files with GPS position near 'LAT, LON' (repeatable, -v shows match)",
+            nargs = 1,
+            action="append", dest="near", default=[])
+        parser.add_option(
+            "--distance",
+            help="radius for a --near match in kilometers (default 5)",
+            dest="near_dist", default=5)
         parser.add_option(
             "--maxstr", type="int",
             help="Maximum string length to print (default 50, 0 = unlimited)",
@@ -295,6 +327,12 @@ class TagBoy(object):
 
         for ss in self.options.execStrings: # convert echo list into templates
             self.exec_tmpl.append(TagTemplate(ss))
+
+        for nn in self.options.near: # convert echo list into templates
+            try:
+                self.near.append(self._ParseLatLon(nn))
+            except ValueError:
+                self.Error("Unable to parse %r as (lat, lon).  IGNORED" % nn)
 
         # Compile all code first to flush out any errors
         for ss in self.options.begin_files:
@@ -511,6 +549,74 @@ class TagBoy(object):
         else:
             return False
 
+    def _ParseLatLon(self, arg_str):
+        """Parse command line lat, lon entry and return (lat, lon).
+
+        Only supports signed decimal representation for now.
+        Outer parentheses and whitespace is ignored
+        """
+        ss = arg_str
+        if ss[0] == '(':
+            ss = ss[1:]
+        if ss[-1] == ')':
+            ss = ss[:-1]
+        lat, lon = ss.strip().split(',')
+        lat = lat.strip()
+        lon = lon.strip()
+        return (float(lat), float(lon))
+
+    def _ConvertDMS(self, dms):
+        """Convert degree, minute, second string to decimal degrees."""
+        # TODO: class method
+        mo = self.DMS_RE.match(dms)
+        if not mo:
+            raise ValueError, "Error parsing %r as degree, minutes, seconds" % dms
+        deg, min, sec = mo.groups()
+        return float(deg) + float(min)/60.0 + float(sec)/3600.0
+
+    def _GetDecimalLatLon(self, local_tags):
+        """Convert exif GPS fields to a decimal lan-lon tuple."""
+        try:
+            lat = local_tags["Exif.GPSInfo.GPSLatitude"]
+            lat_ref = local_tags["Exif.GPSInfo.GPSLatitudeRef"]
+            lon = local_tags["Exif.GPSInfo.GPSLongitude"]
+            lon_ref = local_tags["Exif.GPSInfo.GPSLongitudeRef"]
+            self.Debug(2, "lat: %r, lon: %r" % (lat, lon))   # DEBUG
+            
+            lat = self._ConvertDMS(lat)
+            if lat_ref == "South":
+                lat = -lat
+            lon = self._ConvertDMS(lon)
+            if lon_ref == "West":
+                lon = -lon
+
+            ret = (lat, lon)
+            self.Debug(2, "GetDecimalLatLon: %r" % (ret, ))   # DEBUG
+            return ret
+        except (KeyError, ValueError), msg:  # missing fields or invalid values
+            self.Debug(2, "GetDecimalLatLon: %s" % msg)   # DEBUG
+            return None
+        return None
+
+    def Near(self, fname, local_tags):
+        """Check if this file has position and is near any given point."""
+
+        file_pos = self._GetDecimalLatLon(local_tags)
+        if not file_pos:
+            return False
+
+        for pos in self.near:
+            dist = distance(pos, file_pos)
+            if dist <= self.options.near_dist:
+                self.Verbose("%s: (%.6f, %.6f) is %.1fkm from (%.6f, %.6f)" % (
+                    fname, file_pos[0], file_pos[1], dist, pos[0], pos[1]))
+                return True
+            else:
+                self.Debug(1, "%s: (%.6f, %.6f) is %.1fkm from (%.6f, %.6f)" % (
+                    fname, file_pos[0], file_pos[1], dist, pos[0], pos[1]))
+
+        return False
+
     def AllExec(self, var_list):
         """Run all --exec commands."""
         for et in self.exec_tmpl:
@@ -667,6 +773,9 @@ class TagBoy(object):
         local_tags['_'+self.FILEPATH] = fn
         local_tags['_'+self.MATCHCOUNT] = self.match_count
         local_tags['_'+self.VERSION] = VERSION
+
+        if self.near and not self.Near(fn, local_tags):
+            return
 
         if self.options.printpath:
             print fn
