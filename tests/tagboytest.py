@@ -38,6 +38,7 @@ class RegressTests(unittest.TestCase):
     files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg', 
              'IMAG0166.jpg', 'butterfly-tagtest.jpg']
     gps_files = 'DSCN0443.JPG', 'IMAG0160.jpg', 'IMAG0166.jpg'
+    near_files = 'IMAG0160.jpg', 'IMAG0166.jpg'
 
     def setUp(self):
         if os.path.isdir('testdata'):
@@ -122,6 +123,25 @@ class RegressTests(unittest.TestCase):
                      "Expected file_count %d >= %d"
                      % (self.tb.file_count, len(self.files)))
         for fn in self.gps_files:
+            self.assert_(fn in output,
+                         "Expected '%s' in output: %s" % (fn, output))
+
+    def testNearEcho(self):
+        """Simple test of near and echo."""
+        sys.stdout = StringIO.StringIO() # redirect stdout
+        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
+                                   '--near', '(37.273852, -107.884577)',
+                                   '--distance', '999',
+                                   '--echo', '$_filename is $_distance'])
+        self.tb.EachDir(self.testdata)
+        output = sys.stdout.getvalue()
+        sys.stdout.close()      # free memory
+        sys.stdout = self.old_stdout
+
+        self.assert_(self.tb.file_count >= len(self.files),
+                     "Expected file_count %d >= %d"
+                     % (self.tb.file_count, len(self.files)))
+        for fn in self.near_files:
             self.assert_(fn in output,
                          "Expected '%s' in output: %s" % (fn, output))
 
