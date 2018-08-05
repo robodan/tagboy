@@ -1,5 +1,6 @@
+SHELL := /bin/bash
 NAME = tagboy
-TARDIR = ~/dload
+TARDIR = ~/Downloads
 PREFIX = /usr/local
 INSTALL = install
 
