@@ -61,7 +61,8 @@ if multiple --grep options are given, only continue if ALL of them
 match.
 
 If multiple --near options are given, select a file if ANY of them
-match.
+match.  The special tags _near and _distance will be set to the
+nearest match.
 
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
 for that tag.  If the file doesn't have that tag, then it will passed
@@ -99,7 +100,7 @@ the --eval sets skip to a non False value, further processing
 
 Examples:
   tagboy ./ --iname '*.jpg' --ls
-  tagboy ./ --iname '*.jpg' --echo '$_filename_: ${Keywords}'
+  tagboy ./ --iname '*.jpg' --echo '$_filename: ${Keywords}'
   tagboy ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
   NOTE: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
@@ -353,6 +354,8 @@ class TagBoy(object):
         for chk in self.options.iGlobs: # make case insensitive
             self.iname_globs.append(chk.lower())
 
+        self.options.near_dist = float(self.options.near_dist)
+
         compile_flags = re.IGNORECASE if self.options.igrep else 0
         for pat, targ in self.options.grep:
             rec = re.compile(pat, compile_flags)
@@ -575,7 +578,12 @@ class TagBoy(object):
         return float(deg) + float(min)/60.0 + float(sec)/3600.0
 
     def _GetDecimalLatLon(self, local_tags):
-        """Convert exif GPS fields to a decimal lan-lon tuple."""
+        """Convert exif GPS fields to a decimal lan-lon tuple.
+
+        Returns (lat, lon)
+        Returns None if the fields were missing or invalid
+        """
+
         try:
             lat = local_tags["Exif.GPSInfo.GPSLatitude"]
             lat_ref = local_tags["Exif.GPSInfo.GPSLatitudeRef"]
@@ -605,16 +613,25 @@ class TagBoy(object):
         if not file_pos:
             return False
 
+        nearest = None
+        closest = None
         for pos in self.near:
             dist = distance(pos, file_pos)
             if dist <= self.options.near_dist:
-                self.Verbose("%s: (%.6f, %.6f) is %.1fkm from (%.6f, %.6f)" % (
-                    fname, file_pos[0], file_pos[1], dist, pos[0], pos[1]))
-                return True
+                if closest is None or dist < closest:   # find closest match
+                    closest = dist
+                    nearest = pos
             else:
                 self.Debug(1, "%s: (%.6f, %.6f) is %.1fkm from (%.6f, %.6f)" % (
                     fname, file_pos[0], file_pos[1], dist, pos[0], pos[1]))
 
+        if nearest:
+            self.Verbose("%s: (%.6f, %.6f) is %.1fkm from (%.6f, %.6f)" % (
+                fname, file_pos[0], file_pos[1], closest, nearest[0], nearest[1]))
+            local_tags['_near'] = "(%.6f, %.6f)" % (nearest[0], nearest[1])
+            local_tags['_distance'] = "%.1f" % closest
+            return True
+            
         return False
 
     def AllExec(self, var_list):
@@ -740,6 +757,7 @@ class TagBoy(object):
             self.global_vars[self.MATCHCOUNT] = self.match_count
             local_vars = dict()
             self._MakeTagDict(meta, revmap, local_tags)
+            # FIX??? why no leading _ here???
             local_vars[self.FILENAME] = os.path.basename(fn)
             local_vars[self.FILEPATH] = fn
             local_vars[self.OBJS] = meta # DOC
@@ -774,14 +792,18 @@ class TagBoy(object):
         local_tags['_'+self.MATCHCOUNT] = self.match_count
         local_tags['_'+self.VERSION] = VERSION
 
-        if self.near and not self.Near(fn, local_tags):
-            return
+        if self.near:
+            local_tags['_near'] = ""      # clear any old values
+            local_tags['_distance'] = ""
+            if not self.Near(fn, local_tags):
+                return
 
         if self.options.printpath:
             print fn
 
         for et in self.echo_tmpl:
             out = et.safe_substitute(local_tags)
+            self.Debug(1, "%r -> %r" % (et, out))   # DEBUG
             print out
 
         if self.options.ls:
