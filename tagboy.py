@@ -102,6 +102,7 @@ Examples:
   tagboy ./ --iname '*.jpg' --ls
   tagboy ./ --iname '*.jpg' --echo '$_filename: ${Keywords}'
   tagboy ./ --iname '*.jpg' --grep '.' '*GPS*' --print'
+  tagboy ./ --iname '*.jpg' --near '37.273852, -107.884577' --distance=99  --print'
   NOTE: that you need single quotes to keep the shell from expanding *.jpg
 """                             # NOTE: this is also the usage string in help
 

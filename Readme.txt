@@ -30,7 +30,7 @@ The test data is severely trimmed for size.  Our priority is tags,
 thumbnails, and (lastly) the image.
 
 TODO:
-  Include helper routines to make dates, GPS, etc easier to compare
+  Include helper routines to make dates easier to compare
   Write changed tag value back to image
   Error handling
-  Work out some real use examples: near GPS position, near time, time adjust
+  Work out some real use examples: near time, time adjust
