@@ -10,6 +10,7 @@ INSTALL = install
 # Install on system (run under sudo)
 install:	install-bin install-man
 
+# TODO: package util.py as an egg (or equivalent)
 install-bin:
 	$(INSTALL) -v -m 755 tagboy $(PREFIX)/bin/
 

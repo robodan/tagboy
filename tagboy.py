@@ -67,10 +67,10 @@ nearest match.
 For --echo or --exec, $TAG or ${TAG} will expand into the files value
 for that tag.  If the file doesn't have that tag, then it will passed
 through unchanged.  In addition to file tags, the program defines:
-_arg, _filecount, _filename, _filepath, _matchcount, _version.  
+_arg, _filecount, _filename, _filepath, _matchcount, _version.
 See:  http://docs.python.org/library/string.html#string.Template
 
-For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob): 
+For arguments that take 'globs' (e.g. --iname, --name, grep's tags_glob):
   ?   - matches any single character
   *   - match zero or more characters
   []  - match the letters or range in the brackets.  e.g. [A-z]
@@ -127,25 +127,12 @@ import subprocess
 import string
 import sys
 
-from math import cos, asin, sqrt
-
-
-def distance(latlon1, latlon2):
-    """Distance in km between two lat/lon positions using haversine."""
-    # Note: will blow up if positions are half way around the world
-    # assumes a spherical world
-    # https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
-    lat1, lon1 = latlon1
-    lat2, lon2 = latlon2
-    p = 0.017453292519943295     #Pi/180
-    a = 0.5 - cos((lat2 - lat1) * p)/2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
-    return 12742 * asin(sqrt(a)) #2*R*asin...
-
+from util import *
 
 class TagTemplate(string.Template):
     """Sub-class string.Template to allow . in variable names."""
     idpattern = r'[_a-z][\._a-z0-9]*'
-    
+
 
 class TagBoy(object):
     """Class that implements tag mapulation."""
@@ -591,7 +578,7 @@ class TagBoy(object):
             lon = local_tags["Exif.GPSInfo.GPSLongitude"]
             lon_ref = local_tags["Exif.GPSInfo.GPSLongitudeRef"]
             self.Debug(2, "lat: %r, lon: %r" % (lat, lon))   # DEBUG
-            
+
             lat = self._ConvertDMS(lat)
             if lat_ref == "South":
                 lat = -lat
@@ -632,7 +619,7 @@ class TagBoy(object):
             local_tags['_near'] = "(%.6f, %.6f)" % (nearest[0], nearest[1])
             local_tags['_distance'] = "%.1f" % closest
             return True
-            
+
         return False
 
     def AllExec(self, var_list):
@@ -713,7 +700,7 @@ class TagBoy(object):
                 and depth >= self.options.maxdepth):
                 self.Debug(2, "Hit maxdepth.  Trimming %s" % dirs)
                 del dirs[:] # trim all sub directories
-            else:        
+            else:
                 for d in dirs:
                     if d.startswith('.'): # ignore hidden directories
                         self.Debug(2, "Trimming hidden: %s" % (d))
@@ -814,7 +801,7 @@ class TagBoy(object):
             self.AllExec(meta, local_tags)
 
         if self.options.linkdir:
-            self.SymLink(fn)            
+            self.SymLink(fn)
 
     def DoEnd(self):
         """Do final code block after last file.
@@ -827,7 +814,7 @@ class TagBoy(object):
                 self._Eval(cc, dict())
         return self.match_count > 0
 
-        
+
 def main():
     tb = TagBoy()
     args = tb.HandleArgs(sys.argv[1:])
