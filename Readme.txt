@@ -4,7 +4,8 @@ Dan Christian
 
 Notes:
 
-The main user documentation is the built in help:  tagboy -h
+The main user documentation is the man page tagboy.1 or the built in
+help: tagboy -h
 
 --echo is a subset of --eval, but it's easier to understand (and
 safer).
