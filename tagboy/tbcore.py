@@ -29,7 +29,12 @@ from __future__ import division
 import fnmatch
 import optparse              # deprecated.  TODO:  convert to argparse
 import os
-import pyexiv2 as ex
+try:
+    import pyexiv2 as ex
+except ImportError:
+    print "Unable to import pyexiv2.  You may need: sudo apt install python-pyexiv2"
+    sys.exit(1)
+
 import re
 import subprocess
 import string
