@@ -17,6 +17,9 @@ install-bin:
 install-man:
 	$(INSTALL) -v -m 644 tagboy.1 $(PREFIX)/share/man/man1/
 
+tagboy.pex:	tagboy.py util.py Makefile
+	pex -o $? --python=/usr/bin/python2 -c tagboy -- tagboy.py util.py
+
 # Build tarball for distribution (no space hogging tests/testdata)
 tar:
 	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \

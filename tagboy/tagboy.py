@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # ******************************************************************************
 #
@@ -127,7 +127,7 @@ import subprocess
 import string
 import sys
 
-from util import *
+from tbutil import *
 
 class TagTemplate(string.Template):
     """Sub-class string.Template to allow . in variable names."""
