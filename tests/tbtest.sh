@@ -20,7 +20,7 @@ error() {
 tmp_dir="/tmp/${LOGNAME}_tb-test"
 [[ -d "$tmp_dir" ]] || mkdir "$tmp_dir"
 [[ -d "$tmp_dir" ]] || abort "Unable to access: $tmp_dir"
-[[ -r "./tagboy" ]] && tdir="./" ||  tdir="../"
+[[ -r "tagboy/tagboy.py" ]] && tdir="./" ||  tdir="../"
 [[ -x "$tdir/tagboy" ]] || abort "Unable to run  $tdir/tagboy"
 testdata="$tdir/tests/testdata"
 [[ -d "$testdata" ]] || abort "Unable to access testdata in: $testdata"
@@ -69,4 +69,3 @@ else
   echo "Leaving $tmp_dir for debugging"
   exit 1
 fi
-

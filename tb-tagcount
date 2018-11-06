@@ -8,6 +8,8 @@ abort() {
   exit
 }
 
+[[ -x tagboy.py ]] && TAGBOY=tagboy.py || TAGBOY=tagboy/tagboy.py
+
 # This is the python code that tagboy.py will run
 # We use bash strings to make the formatting easy to see.
 begin='\
@@ -36,4 +38,4 @@ for kk in sorted(hist.keys()):
 print "Looked at %d files" % filecount
 '
 
-tagboy --begin "$begin" --eval "$each" --end "$end" "$@"
+${TAGBOY} --begin "$begin" --eval "$each" --end "$end" "$@"
