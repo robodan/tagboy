@@ -18,7 +18,7 @@ abort() {
   exit
 }
 
-[[ -x tagboy.py ]] && TAGBOY=tagboy.py || TAGBOY=tagboy/tagboy.py
+[[ -x tagboy.py ]] && TAGBOY=tagboy.py || TAGBOY=tagboy/tbcmd.py
 
 # This is the python code that tagboy.py will run
 # We use bash strings to make the formatting easy to see.

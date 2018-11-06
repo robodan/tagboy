@@ -22,6 +22,8 @@
 
 # Utility routines
 
+from __future__ import absolute_import
+
 from math import cos, asin, sqrt
 
 

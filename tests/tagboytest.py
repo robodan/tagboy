@@ -34,8 +34,9 @@ except ImportError:
     print "Unable to load tagboy.  You may need: PYTHONPATH=.. tagboytest.py"
     sys.exit(1)
 
+
 class RegressTests(unittest.TestCase):
-    files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg', 
+    files = ['DSCF2132.jpg', 'DSCN0443.JPG', 'IMAG0154.jpg', 'IMAG0160.jpg',
              'IMAG0166.jpg', 'butterfly-tagtest.jpg']
     gps_files = 'DSCN0443.JPG', 'IMAG0160.jpg', 'IMAG0166.jpg'
     near_files = 'IMAG0160.jpg', 'IMAG0166.jpg'
@@ -51,6 +52,7 @@ class RegressTests(unittest.TestCase):
         self.old_stdout = sys.stdout
         self.old_stderr = sys.stderr
         self.tb = tagboy.TagBoy()
+        self.parser = tagboy.ArgParser()
 
     def tearDown(self):
         sys.stdout = self.old_stdout
@@ -63,7 +65,10 @@ class RegressTests(unittest.TestCase):
         """Simple test of file read and name print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--print'])
+        options, pos_args = self.parser.parse_args([
+            fpath, '--print'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -77,8 +82,11 @@ class RegressTests(unittest.TestCase):
     def testWalk(self):
         """Simple test of directory walk and print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        args = self.tb.HandleArgs([self.testdata,
-                                   '--iname', '*.jpg', '--print'])
+        options, pos_args = self.parser.parse_args([
+            self.testdata,
+            '--iname', '*.jpg', '--print'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachDir(self.testdata)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -94,8 +102,11 @@ class RegressTests(unittest.TestCase):
     def testGrep(self):
         """Simple test of grep and print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
-                                   '--grep', '.', '*GPS*', '--print'])
+        options, pos_args = self.parser.parse_args([
+            self.testdata, '--iname', '*.jpg',
+            '--grep', '.', '*GPS*', '--print'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachDir(self.testdata)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -111,9 +122,12 @@ class RegressTests(unittest.TestCase):
     def testGrepEcho(self):
         """Simple test of grep and echo."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
-                                   '--grep', '.', '*GPS*',
-                                   '--echo', '$_filepath'])
+        options, pos_args = self.parser.parse_args([
+            self.testdata, '--iname', '*.jpg',
+            '--grep', '.', '*GPS*',
+            '--echo', '$_filepath'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachDir(self.testdata)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -129,10 +143,13 @@ class RegressTests(unittest.TestCase):
     def testNearEcho(self):
         """Simple test of near and echo."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
-                                   '--near', '(37.273852, -107.884577)',
-                                   '--distance', '999',
-                                   '--echo', '$_filename is $_distance'])
+        options, pos_args = self.parser.parse_args([
+            self.testdata, '--iname', '*.jpg',
+            '--near', '(37.273852, -107.884577)',
+            '--distance', '999',
+            '--echo', '$_filename is $_distance'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachDir(self.testdata)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -148,8 +165,11 @@ class RegressTests(unittest.TestCase):
     def testGrepFilename(self):
         """Simple test of grep -v -H."""
         sys.stdout = StringIO.StringIO() # redirect stdout
-        args = self.tb.HandleArgs([self.testdata, '--iname', '*.jpg',
-                                   '--grep', '.', '*GPS*', '-v', '-H'])
+        options, pos_args = self.parser.parse_args([
+            self.testdata, '--iname', '*.jpg',
+            '--grep', '.', '*GPS*', '-v', '-H'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachDir(self.testdata)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -166,7 +186,10 @@ class RegressTests(unittest.TestCase):
         """Test of short tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--ls'])
+        options, pos_args = self.parser.parse_args([
+            fpath, '--ls'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -182,7 +205,10 @@ class RegressTests(unittest.TestCase):
         """Test of long tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--ls', '--long'])
+        options, pos_args = self.parser.parse_args([
+            fpath, '--ls', '--long'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -198,7 +224,10 @@ class RegressTests(unittest.TestCase):
         """Test of human format tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--ls', '--human'])
+        options, pos_args = self.parser.parse_args([
+            fpath, '--ls', '--human'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -214,7 +243,10 @@ class RegressTests(unittest.TestCase):
         """Test of --human -u tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--ls', '--human', '-u'])
+        options, pos_args = self.parser.parse_args([
+            fpath, '--ls', '--human', '-u'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -230,7 +262,10 @@ class RegressTests(unittest.TestCase):
         """Test of verbose tag print."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath, '--ls', '-v'])
+        options, pos_args = self.parser.parse_args([
+            fpath,'--ls', '-v'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         output = sys.stdout.getvalue()
         sys.stdout.close()      # free memory
@@ -246,10 +281,13 @@ class RegressTests(unittest.TestCase):
         """Simple test of --begin/eval/end."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath,
-                                   '--begin', 'print "HELLO"',
-                                   '--eval', 'print filepath',
-                                   '--end', 'print "BYE"'])
+        options, pos_args = self.parser.parse_args([
+            fpath,
+            '--begin', 'print "HELLO"',
+            '--eval', 'print filepath',
+            '--end', 'print "BYE"'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         self.tb.DoEnd()
         output = sys.stdout.getvalue()
@@ -268,11 +306,14 @@ class RegressTests(unittest.TestCase):
         """Simple test of --begin/eval/end."""
         sys.stdout = StringIO.StringIO() # redirect stdout
         fpath = os.path.join(self.testdata, self.files[0])
-        args = self.tb.HandleArgs([fpath,
-                                   '--begin', 'print "HELLO"',
-                                   '--eval', 'print filepath',
-                                   '--end', 'print "BYE", arg',
-                                   '--arg', 'WALDO'])
+        options, pos_args = self.parser.parse_args([
+            fpath,
+            '--begin', 'print "HELLO"',
+            '--eval', 'print filepath',
+            '--end', 'print "BYE", arg',
+            '--arg', 'WALDO'])
+        args = self.tb.HandleArgs(options, pos_args)
+
         self.tb.EachFile(fpath)
         self.tb.DoEnd()
         output = sys.stdout.getvalue()
@@ -291,4 +332,4 @@ class RegressTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()  
+    unittest.main()

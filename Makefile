@@ -17,19 +17,20 @@ install-bin:
 install-man:
 	$(INSTALL) -v -m 644 tagboy.1 $(PREFIX)/share/man/man1/
 
+# BROKEN, do not use
 tagboy.pex:	tagboy.py util.py Makefile
 	pex -o $? --python=/usr/bin/python2 -c tagboy -- tagboy.py util.py
 
 # Build tarball for distribution (no space hogging tests/testdata)
 tar:
-	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \
+	eval `grep '^VERSION' tagboy/tbcmd.py`; echo $$VERSION; \
 	(cd ..; tar czf $(TARDIR)/$(NAME)-$$VERSION.tgz --exclude-backups \
 	$(NAME)/COPYING $(NAME)/*.{py,txt,1} $(NAME)/tb-*[A-z] \
 	$(NAME)/Makefile)
 
 # Build tarball for development (with tests)
 tarall:
-	eval `grep '^VERSION' tagboy.py`; echo $$VERSION; \
+	eval `grep '^VERSION' tagboy/tbcmd.py`; echo $$VERSION; \
 	(cd ..; tar czf $(TARDIR)/$(NAME)_all-$$VERSION.tgz --exclude-backups \
 	$(NAME)/COPYING $(NAME)/*.{py,txt,1} $(NAME)/tb-*[A-z] \
         $(NAME)/Makefile $(NAME)/tests/*test.{py,sh} \

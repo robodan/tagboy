@@ -7,7 +7,7 @@
 # Print message and exit
 abort() {
   echo "$@"
-  exit
+  exit 1
 }
 
 errors=0
@@ -20,7 +20,7 @@ error() {
 tmp_dir="/tmp/${LOGNAME}_tb-test"
 [[ -d "$tmp_dir" ]] || mkdir "$tmp_dir"
 [[ -d "$tmp_dir" ]] || abort "Unable to access: $tmp_dir"
-[[ -r "tagboy/tagboy.py" ]] && tdir="./" ||  tdir="../"
+[[ -r "tagboy/tbcmd.py" ]] && tdir="./" ||  tdir="../"
 [[ -x "$tdir/tagboy" ]] || abort "Unable to run  $tdir/tagboy"
 testdata="$tdir/tests/testdata"
 [[ -d "$testdata" ]] || abort "Unable to access testdata in: $testdata"
