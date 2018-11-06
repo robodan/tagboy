@@ -2,7 +2,7 @@
 
 # ******************************************************************************
 #
-# Copyright (C) 2011 Dan Christian <DanChristian65@gmail.com>
+# Copyright (C) 2018 Dan Christian <DanChristian65@gmail.com>
 #
 # This file is part of tagboy distribution.
 #
