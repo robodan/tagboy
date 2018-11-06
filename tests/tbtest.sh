@@ -54,9 +54,9 @@ Test_tb-tagdiff() {
 }
 
 main() {
-  echo "Test_tb-gpspos" && Test_tb-gpspos
-  echo "Test_tb-tagcount" && Test_tb-tagcount
-  echo "Test_tb-tagdiff" && Test_tb-tagdiff
+    echo "Test_tb-gpspos" ; Test_tb-gpspos || error "--- gpspos exit error"
+    echo "Test_tb-tagcount" ; Test_tb-tagcount || error "--- tagcount exit error"
+    echo "Test_tb-tagdiff" ; Test_tb-tagdiff || error "--- tagdiff exit error"
 }
 
 main "$@"

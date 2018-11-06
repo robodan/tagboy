@@ -45,7 +45,17 @@ tarall:
 check:	check-py check-sh
 
 check-py:
-	-for f in tests/*test.py ; do echo ==== $$f; PYTHONPATH=. $$f; done
+	@(failed=""; for f in tests/*test.py ; do echo "==== $$f" ; \
+	if PYTHONPATH=. $$f ; \
+	then echo "++++ $$f passed" ; \
+	else echo "---- $$f FAILED"; failed="$$failed $$f" ; \
+	fi ; \
+	done ; [[ -n "$$failed" ]] && echo "Failed: $$failed"; [[ -z "$$failed" ]])
 
 check-sh:
-	-for f in tests/*test.sh ; do echo ==== $$f; PYTHONPATH=. $$f; done
+	@(failed=""; for f in tests/*test.sh ; do echo "==== $$f" ; \
+	if PYTHONPATH=. $$f ; \
+	then echo "++++ $$f passed" ; \
+	else echo "---- $$f FAILED"; failed="$$failed $$f" ; \
+	fi ; \
+	done ; [[ -n "$$failed" ]] && echo "Failed: $$failed"; [[ -z "$$failed" ]])
