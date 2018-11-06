@@ -30,6 +30,8 @@
 # 5 Sept 2011
 # Requires pyexiv2 0.3+ and python 2.7
 
+# Command line parsing and script execution
+
 # TODO: convert to gexiv2 https://wiki.gnome.org/Projects/gexiv2
 
 # Features:
@@ -110,7 +112,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 # This line must also be valid borne shell for Makefile extraction.  No spaces allowed.
-VERSION='0.12'
+VERSION='0.13'
 
 #TODO: Field comparisons (more than --eval ?)
 #TODO: Field assignments
@@ -120,16 +122,10 @@ VERSION='0.12'
 #TODO: Write/read a sqlite3? database with ???
 #TODO:
 
-import fnmatch
 import optparse              # deprecated.  TODO:  convert to argparse
 import os
-import pyexiv2 as ex
-import re
-import subprocess
-import string
 import sys
 
-from tbutil import *
 from tbcore import *
 
 
